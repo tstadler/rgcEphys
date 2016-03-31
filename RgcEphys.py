@@ -492,6 +492,61 @@ class plots:
 
         return fig
 
+    def rf_svd(sta, kernel, u, v):
+
+        """
+        :param sta
+        :param kernel
+        :param u
+        :param v
+        """
+        from matplotlib import ticker
+
+        plt.rcParams.update(
+            {'figure.figsize': (15, 8), 'figure.subplot.hspace': .2, 'figure.subplot.wspace': 0, 'ytick.major.pad': 10})
+
+        fig = plt.figure()
+
+        fig.add_subplot(2, 3, 1)
+
+        tau = int(input('Select best time lag tau for rf mapping [in ms]: '))
+        frame = int(10 - tau / 10)
+        x1 = int(input('And the pixel borders: x1: '))
+        x2 = int(input('And the pixel borders: x2: '))
+        y1 = int(input('And the pixel borders: y1: '))
+        y2 = int(input('And the pixel borders: y2: '))
+
+        im = plt.imshow(sta[frame, :, :][x1:x2, y1:y2], interpolation='none',
+                        cmap=plt.cm.coolwarm, extent=(y1, y2, x2, x1), origin='upper')
+        plt.xticks([])
+        plt.yticks([])
+
+        fig.add_subplot(2, 2, 2)
+        deltat = 1000  # in ms
+        t = np.linspace(100, -deltat, len(kernel))
+        plt.plot(t, kernel)
+        plt.locator_params(axis='y', nbins=4)
+        ax = fig.gca()
+        ax.set_xticklabels([])
+        ax.set_xlim([100, -deltat])
+        plt.ylabel('stimulus intensity', labelpad=20)
+
+        fig.add_subplot(2, 3, 4)
+        im = plt.imshow(v.reshape(sta.shape[1], sta.shape[2])[x1:x2, y1:y2], interpolation='none',
+                        cmap=plt.cm.coolwarm, extent=(y1, y2, x2, x1), origin='upper')
+        plt.xticks([])
+        plt.yticks([])
+
+        fig.add_subplot(2, 2, 4)
+        plt.plot(t, u)
+        plt.locator_params(axis='y', nbins=4)
+        ax = fig.gca()
+        ax.set_xlim([100, -deltat])
+        plt.xlabel('time [ms]', labelpad=10)
+        plt.ylabel('stimulus intensity', labelpad=20)
+
+        return fig
+
 
 
 
