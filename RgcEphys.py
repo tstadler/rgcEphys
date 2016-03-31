@@ -268,7 +268,7 @@ class stimuli:
             u = np.zeros([sta_raw.shape[0], sta_raw.shape[0]])
             v = np.zeros([sta_raw.shape[1], sta_raw.shape[1]])
 
-        if np.mean(u[:,0]) != np.mean(kernel):
+        if np.sign(np.mean(u[:,0])) != np.sign(np.mean(kernel)):
             u = -1*u
 
         if np.mean(kernel) < 0:
@@ -276,7 +276,7 @@ class stimuli:
         else:
             idx_rf = np.where(kernel == max(kernel))[0][0]
 
-        if np.mean(v[0,:]) != np.mean(sta_raw[idx_rf,:]):
+        if np.sign(np.mean(v[0,:])) != np.sign(np.mean(sta_raw[idx_rf,:])):
             v = -1 * v
 
         return sta, kernel, u, s, v
