@@ -13,7 +13,7 @@ class preproc:
     def spike_detect(filename, rec_type, ch_voltage, fs = 10000):
 
         """
-            Read electrophysiology data from hdf5 file and detect spikes in the voltage signal
+            Read electrophysiology data from hdf5 file and detect spiketimes in the voltage signal
 
             :param filename: '/path/to/example.h5'
             :param rec_type: enum('intracell', 'extracell') patch mode
@@ -22,7 +22,7 @@ class preproc:
             :return:
                 voltage_trace: array (1,len(recording)) with rawdata trace
                 rec_len: scalar length of the recording
-                spiketimes: array (1,nSpikes) with spiketimes in sample points
+                spiketimes: array (1,nspiketimes) with spiketimes in sample points
             """
 
         f = h5py.File(filename, 'r')
@@ -76,7 +76,7 @@ class preproc:
             thr_boolean = [tmp > -thr]
             tmp[thr_boolean] = 0
 
-            # detect spikes as threshold crossings
+            # detect spiketimes as threshold crossings
             tmp[tmp != 0] = 1
             tmp = tmp.astype(int)
             tmp2 = np.append(tmp[1:len(tmp)], np.array([0], int))
@@ -182,12 +182,12 @@ class stimuli:
         """
             Calculate the spike-triggered stimulus ensemble from the given spiketimes vector and noise m-sequence
 
-            :param spiketimes: array (1,nSpikes) containing the spiketimes in sample points
+            :param spiketimes: array (1,nspiketimes) containing the spiketimes in sample points
             :param triggertimes: array (1,nTrigger) containing the triggertimes in sample points
             :param mseq: string 'name' with the name and path of the noise m-sequence
             :param deltat: int tau (in ms) is the time lag considered before each spike for calculating the spike-triggered stimulus ensemble
             :returns
-                ste: array (nSpikes,(tau+100)/100, stimDim[0] * stimDim[1]) with the spike triggered stimulus for each spike i and time step tau at ste(i,tau,:)
+                ste: array (nspiketimes,(tau+100)/100, stimDim[0] * stimDim[1]) with the spike triggered stimulus for each spike i and time step tau at ste(i,tau,:)
                 stimDim: list (1,3) with the stimulus parameters x,y,length of the m-seq
             """
 
@@ -221,11 +221,11 @@ class stimuli:
 
         spiketimes = spiketimes[spiketimes > triggertimes[0] + delta]
         spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs/freq)]
-        nspikes = len(spiketimes)
+        nspiketimes = len(spiketimes)
 
 
-        ste = np.zeros([nspikes, (delta + 1000) / k, stimDim[0] * stimDim[1]])
-        for st in range(nspikes):
+        ste = np.zeros([nspiketimes, (delta + 1000) / k, stimDim[0] * stimDim[1]])
+        for st in range(nspiketimes):
 
             # calculate ste with time lags in steps of 10 ms
             for t in range(-1000, delta, k):
@@ -239,7 +239,7 @@ class stimuli:
         filter the spike-triggered ensemble and calculate the linear receptive field by averaging.
         singular value decomp for first spatial and temporal filter component
 
-        :param ste: array (nSpikes,(tau+100)/100, stimDim[0] * stimDim[1]) with the spike triggered stimulus for each spike i and time step tau at ste(i,tau,:)
+        :param ste: array (nspiketimes,(tau+100)/100, stimDim[0] * stimDim[1]) with the spike triggered stimulus for each spike i and time step tau at ste(i,tau,:)
         :returns
 
             :return sta: array ((tau+100)/100 , stimDim[0], stimDim[1]) with spike-triggered average reshaped in x-y-dimensions
@@ -281,6 +281,82 @@ class stimuli:
 
         return sta, kernel, u, s, v
 
+    def chirp(spiketimes, triggertimes, delT = .1, fs=10000):
+
+        """
+        :param spiketimes: array (1, nspiketimes)
+        :param triggertimes: array (1, nTrigger)
+        :param fs: sampling rate of the recording
+        :param delT: scalar binsize for the psth in s
+        :return: 
+                psth_trial:
+                    array (ntrials,T/delT) with spike counts per trial binned with delT
+                psth:
+                    array (1,T/delT) where T is the length of one stimulus trial in s and psth is averaged over trials
+                f_norm:
+                    list [ntrials] [nspiketimes] list of ntrials arrays with the spiketimes of this trial
+                    relative to trigger onset (0 = triggertimes[trial,0])
+        """
+
+        # define stimulus
+
+        ChirpDuration = 8  # Time (s) of rising/falling chirp phase
+        ChirpMaxFreq = 8  # Peak frequency of chirp (Hz)
+        IntensityFrequency = 2  # freq at which intensity is modulated
+
+        SteadyOFF = 3.00  # Time (s) of Light OFF at beginning at end of stimulus
+        SteadyOFF2 = 2.00
+        SteadyON = 3.00  # Time (s) of Light 100% ON before and after chirp
+        SteadyMID = 2.00  # Time (s) of Light at 50% for steps
+
+        Fduration = 0.017  # Single Frame duration (s) -  ADJUST DEPENDING ON MONITOR
+        Fduration_ms = 17.0  # Single Frame duration (ms) - ADJUST DEPENDING ON MONITOR
+
+        KK = ChirpMaxFreq / ChirpDuration  # acceleration in Hz / s
+        KK2 = IntensityFrequency
+
+        StimDuration = SteadyOFF2 + SteadyON + 2 * SteadyOFF + 3 * SteadyMID + 2 * ChirpDuration
+
+        ## loop over trials and extract spike times per loop
+
+        ntrials = int(np.floor(len(triggertimes)/2))
+
+        triggertimes = triggertimes.reshape(ntrials, 2)
+
+        true_loopDuration = []
+        for trial in range(1, ntrials):
+            true_loopDuration.append(triggertimes[trial, 0] - triggertimes[trial - 1, 0])
+
+        loopDuration_n = np.ceil(np.mean(true_loopDuration))  # in sample points
+        loopDuration_s = loopDuration_n / fs  # in s
+
+        print('Due to imprecise stimulation freqeuncy a delta of', loopDuration_s - StimDuration,
+              's was detected')
+
+        f = []
+        for trial in range(ntrials - 1):
+            f.append(np.array(spiketimes[(spiketimes > triggertimes[trial, 0]) & (spiketimes < triggertimes[trial + 1, 0])]))
+        f.append(np.array(
+            spiketimes[(spiketimes > triggertimes[ntrials - 1, 0]) & (spiketimes < triggertimes[ntrials - 1, 0] + loopDuration_n)]))
+
+        f_norm = []
+        for trial in range(ntrials):
+            f_norm.append(f[trial] - triggertimes[trial, 0])
+
+        T = int(loopDuration_s)  # in s
+
+        nbins1 = T / delT
+
+        psth = np.zeros(nbins1)  # .astype(int)
+        psth_trials = []
+
+        for trial in range(ntrials):
+            psth_trials.append(np.histogram(f_norm[trial] / fs, nbins1, [0, T])[0])
+            psth += psth_trials[trial]
+
+            psth = psth / (delT * ntrials)
+
+        return (psth_trials, psth, f_norm, loopDuration_s)
 
 
 
