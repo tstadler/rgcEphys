@@ -296,54 +296,39 @@ class stimuli:
                 f_norm:
                     list [ntrials] [nspiketimes] list of ntrials arrays with the spiketimes of this trial
                     relative to trigger onset (0 = triggertimes[trial,0])
+                loop_duration_s:
+                    scalar time of one stimulus trial with imprecise stimulation frequency
         """
 
-        # define stimulus
+        # loop over trials and extract spike times per loop
 
-        ChirpDuration = 8  # Time (s) of rising/falling chirp phase
-        ChirpMaxFreq = 8  # Peak frequency of chirp (Hz)
-        IntensityFrequency = 2  # freq at which intensity is modulated
-
-        SteadyOFF = 3.00  # Time (s) of Light OFF at beginning at end of stimulus
-        SteadyOFF2 = 2.00
-        SteadyON = 3.00  # Time (s) of Light 100% ON before and after chirp
-        SteadyMID = 2.00  # Time (s) of Light at 50% for steps
-
-        Fduration = 0.017  # Single Frame duration (s) -  ADJUST DEPENDING ON MONITOR
-        Fduration_ms = 17.0  # Single Frame duration (ms) - ADJUST DEPENDING ON MONITOR
-
-        KK = ChirpMaxFreq / ChirpDuration  # acceleration in Hz / s
-        KK2 = IntensityFrequency
-
-        StimDuration = SteadyOFF2 + SteadyON + 2 * SteadyOFF + 3 * SteadyMID + 2 * ChirpDuration
-
-        ## loop over trials and extract spike times per loop
+        StimDuration = 32.5
 
         ntrials = int(np.floor(len(triggertimes)/2))
 
         triggertimes = triggertimes.reshape(ntrials, 2)
 
-        true_loopDuration = []
+        true_loop_duration = []
         for trial in range(1, ntrials):
-            true_loopDuration.append(triggertimes[trial, 0] - triggertimes[trial - 1, 0])
+            true_loop_duration.append(triggertimes[trial, 0] - triggertimes[trial - 1, 0])
 
-        loopDuration_n = np.ceil(np.mean(true_loopDuration))  # in sample points
-        loopDuration_s = loopDuration_n / fs  # in s
+        loop_duration_n = np.ceil(np.mean(true_loop_duration))  # in sample points
+        loop_duration_s = loop_duration_n / fs  # in s
 
-        print('Due to imprecise stimulation freqeuncy a delta of', loopDuration_s - StimDuration,
+        print('Due to imprecise stimulation freqeuncy a delta of', loop_duration_s - StimDuration,
               's was detected')
 
         f = []
         for trial in range(ntrials - 1):
             f.append(np.array(spiketimes[(spiketimes > triggertimes[trial, 0]) & (spiketimes < triggertimes[trial + 1, 0])]))
         f.append(np.array(
-            spiketimes[(spiketimes > triggertimes[ntrials - 1, 0]) & (spiketimes < triggertimes[ntrials - 1, 0] + loopDuration_n)]))
+            spiketimes[(spiketimes > triggertimes[ntrials - 1, 0]) & (spiketimes < triggertimes[ntrials - 1, 0] + loop_duration_n)]))
 
         f_norm = []
         for trial in range(ntrials):
             f_norm.append(f[trial] - triggertimes[trial, 0])
 
-        T = int(loopDuration_s)  # in s
+        T = int(loop_duration_s)  # in s
 
         nbins1 = T / delT
 
@@ -356,7 +341,70 @@ class stimuli:
 
             psth = psth / (delT * ntrials)
 
-        return (psth_trials, psth, f_norm, loopDuration_s)
+        return (psth_trials, psth, f_norm, loop_duration_s)
+
+    def ds(spiketimes, triggertimes):
+
+        """
+        :param spiketimes array (1, nSpikes)
+        :param triggertimes array(1, nTrigger)
+        :returns:
+            :return spiketimes_trial list [ntrials] [nSpikes] list of ntrials arays containing spiketimes sorted by trial
+            :return spiketimes_normed list [ntrials] [nSpikes] list of ntrials arrays with the spike train of this trial
+            :return hist list [ntrials] [nconditions] list of ntrials array with the number of spikes per direction in this trial
+            :return hist_sorted list [ntrial] [nconditions] list of ntrials arrays with the number of spikes per direction but sorted from 0 deg to 315 deg
+            :return dsi scalar direction-selectivity index which is R_p-R_n/(R_p + R_n)
+            :return deg array (1,nconditions) containing the tested directions ordered as they were presented
+        """
+
+        # fetch data
+
+        nconditions = int(8)
+        ntrials = int(np.floor(len(triggertimes) / 8))
+
+        deg = np.array([0, 180, 45, 225, 90, 270, 135, 315])  # np.arange(0, 360, 360/nconditions)
+        idx = np.array([0, 4, 6, 2, 5, 1, 7, 3])
+
+        true_loop_duration = []
+        for trial in range(1, ntrials):
+            true_loop_duration.append(triggertimes[trial * nconditions] - triggertimes[(trial - 1) * nconditions])
+        loop_duration_n = np.ceil(np.mean(true_loop_duration))  # in sample points
+        # loopDuration_s = loopDuration_n/10000 # in s
+
+
+        spiketimes_trial = []
+        spiketimes_normed = []
+        hist = []
+        hist_sorted = []
+
+        for trial in range(ntrials - 1):
+            spiketimes_trial.append(np.array(
+                spiketimes[(spiketimes > triggertimes[trial * nconditions]) & (spiketimes < triggertimes[(trial + 1) * nconditions])]))
+            spiketimes_normed.append(spiketimes_trial[trial] - triggertimes[trial * nconditions])
+            hist.append(np.histogram(spiketimes_normed[trial], 8, [0, loop_duration_n])[0])
+
+            # sort by condition
+            hist_sorted.append(hist[trial][idx])
+
+        spiketimes_trial.append(np.array(spiketimes[(spiketimes > triggertimes[(ntrials - 1) * nconditions])
+                                            & (spiketimes < triggertimes[(ntrials - 1) * nconditions] + loop_duration_n)]))
+        spiketimes_normed.append(spiketimes_trial[ntrials - 1] - triggertimes[(ntrials - 1) * nconditions])
+        hist.append(np.histogram(spiketimes_normed[ntrials - 1], 8, [0, loop_duration_n])[0])
+        hist_sorted.append(hist[ntrials - 1][idx])
+
+        hist_sum = np.sum(hist, 0)
+        r_p = np.max(hist_sum)
+        idx_p = np.where(hist_sum == r_p)[0][0]
+        d_p = deg[idx_p]
+        if (idx_p % 2) == 0:
+            d_n = deg[idx_p + 1]
+            r_n = hist_sum[idx_p + 1]
+        else:
+            d_n = deg[idx_p - 1]
+            r_n = hist_sum[idx_p - 1]
+        dsi = (r_p - r_n) / (r_p + r_n)
+
+        return (spiketimes_trial, spiketimes_normed, hist, hist_sorted, dsi, deg)
 
 
 
