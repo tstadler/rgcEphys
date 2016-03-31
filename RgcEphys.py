@@ -435,8 +435,8 @@ class plots:
         else:
             end = sta.shape[0]
 
-        for delt in range(0, sta.shape[0], 10):
-            fig.add_subplot(2, sta.shape[0] / 20, tmp)
+        for delt in range(0, end, 10):
+            fig.add_subplot(2, end / 20, tmp)
             im = plt.imshow(sta_norm[delt, :, :],
                             cmap=plt.cm.coolwarm, clim=(-np.percentile(sta_norm, 95), np.percentile(sta_norm, 95)),
                             interpolation='none')
