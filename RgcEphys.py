@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 import scipy.signal as scignal
 import scipy.ndimage as scimage
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class preproc:
 
@@ -405,6 +407,51 @@ class stimuli:
         dsi = (r_p - r_n) / (r_p + r_n)
 
         return (spiketimes_trial, spiketimes_normed, hist, hist_sorted, dsi, deg)
+
+class plots:
+
+    """
+    contains functions for plotting of analysis results
+    """
+
+    def rf_deltas(sta):
+
+        """
+        :param sta array(tau,stimDim[0],stimDim[1]) smoothed sta returned by stimuli.sta()
+        """
+
+        plt.rcParams.update({
+            'figure.figsize': (15, 8),'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16})
+
+        sta_norm = sta/np.std(sta,0)
+
+        fig, ax = plt.figure()
+        tmp = 1
+
+        for delt in range(0, sta.shape[0], 10):
+            fig.add_subplot(2, sta.shape[0] / 20, tmp)
+            im = plt.imshow(sta_norm[delt, :, :],
+                            cmap=plt.cm.coolwarm, clim=(-np.percentile(sta_norm, 90), np.percentile(sta_norm, 90)),
+                            interpolation='none')
+            plt.title('$\Delta$ t = ' + str(-(delt - 10) * 10) + 'ms')
+            plt.yticks([])
+            plt.xticks([])
+            tmp += 1
+
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.02, 0.6])
+        cbar = fig.colorbar(im, cax=cbar_ax)
+        cbar.set_label('s.d. units', labelpad=40, rotation=270)
+
+        return fig, ax
+
+    def rf_contour(sta):
+
+        """
+        :param sta array(tau,stimDim[0],stimDim[1]) smoothed sta returned by stimuli.sta()
+        """
+
+
 
 
 
