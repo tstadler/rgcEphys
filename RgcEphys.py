@@ -10,7 +10,7 @@ class preproc:
         contains functions for spike and trigger detection including some basic filtering
     """
 
-    def spike_detect(self, filename, rec_type, ch_voltage, fs = 10000):
+    def spike_detect(filename, rec_type, ch_voltage, fs = 10000):
 
         """
             Read electrophysiology data from hdf5 file and detect spikes in the voltage signal
@@ -120,7 +120,7 @@ class preproc:
 
         return voltage_trace, rec_len, spiketimes,
 
-    def trigger_detect(self, filename, ch_trigger):
+    def trigger_detect(filename, ch_trigger):
 
         """
         :param filename: '/path/to/exmplae/file.h5'
@@ -177,7 +177,7 @@ class stimuli:
     contains functions for analysis of the light-dependet responses to different stimulus classes such as binary noise or moving bars
     """
 
-    def ste(self, spiketimes, triggertimes, rec_len, mseq, freq = 5, deltat=1000, fs = 10000):
+    def ste(spiketimes, triggertimes, rec_len, mseq, freq = 5, deltat=1000, fs = 10000):
 
         """
             Calculate the spike-triggered stimulus ensemble from the given spiketimes vector and noise m-sequence
@@ -233,7 +233,7 @@ class stimuli:
 
         return ste, stimDim
 
-    def sta(self, ste, stimDim):
+    def sta(ste, stimDim):
 
         """
         filter the spike-triggered ensemble and calculate the linear receptive field by averaging.
@@ -280,6 +280,8 @@ class stimuli:
             v = -1 * v
 
         return sta, kernel, u, s, v
+
+
 
 
 
