@@ -425,7 +425,7 @@ class plots:
 
         sta_norm = sta/np.std(sta,0)
 
-        fig, ax = plt.figure()
+        fig = plt.figure()
         tmp = 1
 
         for delt in range(0, sta.shape[0], 10):
@@ -443,7 +443,7 @@ class plots:
         cbar = fig.colorbar(im, cax=cbar_ax)
         cbar.set_label('s.d. units', labelpad=40, rotation=270)
 
-        return fig, ax
+        return fig
 
     def rf_contour(sta):
 
