@@ -419,24 +419,24 @@ class plots:
         """
         :param sta array(tau,stimDim[0],stimDim[1]) smoothed sta returned by stimuli.sta()
         """
-
         from matplotlib import ticker
 
         plt.rcParams.update({
-            'figure.figsize': (15, 8),'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16})
+            'figure.figsize': (15, 8), 'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16,
+            'axes.labelsize': 18, 'xtick.labelsize': 16, 'ytick.labelsize': 16})
 
-        sta_norm = sta/np.std(sta,0)
+        sta_norm = sta / np.std(sta, 0)
 
         fig = plt.figure()
         tmp = 1
 
         if sta.shape[0] % 20 != 0:
-            end = sta.shape[0] - 10
+            end = sta.shape[0] - sta.shape[0] % 20
         else:
             end = sta.shape[0]
 
         for delt in range(0, end, 10):
-            fig.add_subplot(2, end / 20, tmp)
+            fig.add_subplot(2, sta.shape[0] / 20, tmp)
             im = plt.imshow(sta_norm[delt, :, :],
                             cmap=plt.cm.coolwarm, clim=(-np.percentile(sta_norm, 95), np.percentile(sta_norm, 95)),
                             interpolation='none')
