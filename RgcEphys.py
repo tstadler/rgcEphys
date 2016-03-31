@@ -420,6 +420,8 @@ class plots:
         :param sta array(tau,stimDim[0],stimDim[1]) smoothed sta returned by stimuli.sta()
         """
 
+        from matplotlib import ticker
+
         plt.rcParams.update({
             'figure.figsize': (15, 8),'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16})
 
@@ -428,10 +430,15 @@ class plots:
         fig = plt.figure()
         tmp = 1
 
+        if sta.shape[0] % 20 != 0:
+            end = sta.shape[0] - 10
+        else:
+            end = sta.shape[0]
+
         for delt in range(0, sta.shape[0], 10):
             fig.add_subplot(2, sta.shape[0] / 20, tmp)
             im = plt.imshow(sta_norm[delt, :, :],
-                            cmap=plt.cm.coolwarm, clim=(-np.percentile(sta_norm, 90), np.percentile(sta_norm, 90)),
+                            cmap=plt.cm.coolwarm, clim=(-np.percentile(sta_norm, 95), np.percentile(sta_norm, 95)),
                             interpolation='none')
             plt.title('$\Delta$ t = ' + str(-(delt - 10) * 10) + 'ms')
             plt.yticks([])
@@ -443,6 +450,10 @@ class plots:
         cbar = fig.colorbar(im, cax=cbar_ax)
         cbar.set_label('s.d. units', labelpad=40, rotation=270)
 
+        tick_locator = ticker.MaxNLocator(nbins=6)
+        cbar.locator = tick_locator
+        cbar.update_ticks()
+
         return fig
 
     def rf_contour(sta):
@@ -450,7 +461,36 @@ class plots:
         """
         :param sta array(tau,stimDim[0],stimDim[1]) smoothed sta returned by stimuli.sta()
         """
+        from matplotlib import ticker
 
+        plt.rcParams.update({
+            'figure.figsize': (10, 8), 'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16,
+            'axes.labelsize': 18,
+            'xtick.labelsize': 16, 'ytick.labelsize': 16, 'lines.linewidth': 4})
+
+        tau = int(input('Select best time lag tau for rf mapping [in ms]: '))
+        frame = int(10 - tau / 10)
+        x1 = int(input('And the pixel borders: x1: '))
+        x2 = int(input('And the pixel borders: x2: '))
+        y1 = int(input('And the pixel borders: y1: '))
+        y2 = int(input('And the pixel borders: y2: '))
+
+        fig = plt.figure()
+
+        im = plt.imshow(sta[frame, :, :][x1:x2, y1:y2], interpolation='none',
+                        cmap=plt.cm.Greys_r, extent=(y1, y2, x2, x1), origin='upper')
+        cs = plt.contour(sta[frame, :, :][x1:x2, y1:y2],
+                         extent=(y1, y2, x2, x1), cmap=plt.cm.coolwarm, origin='upper', linewidth=4)
+
+        cb = plt.colorbar(cs, extend='both', shrink=.8)
+        cbaxes = fig.add_axes([.15, .02, .6, .03])  # [left, bottom, width, height]
+        cbi = plt.colorbar(im, orientation='horizontal', cax=cbaxes)
+
+        tick_locator = ticker.MaxNLocator(nbins=6)
+        cbi.locator = tick_locator
+        cbi.update_ticks()
+
+        return fig
 
 
 
