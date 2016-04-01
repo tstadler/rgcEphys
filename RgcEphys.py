@@ -517,11 +517,11 @@ class plots:
 
         tau = int(input('Select best time lag tau for rf mapping [in ms]: '))
         frame = int(10 - tau / 10)
-        # x1 = int(input('And the pixel borders: x1: '))
-        # x2 = int(input('And the pixel borders: x2: '))
-        # y1 = int(input('And the pixel borders: y1: '))
-        # y2 = int(input('And the pixel borders: y2: '))
-        (x1, x2, y1, y2) = (0, 14, 0, 14)
+        x1 = int(input('And the pixel borders: x1: '))
+        x2 = int(input('And the pixel borders: x2: '))
+        y1 = int(input('And the pixel borders: y1: '))
+        y2 = int(input('And the pixel borders: y2: '))
+
         im = plt.imshow(sta[frame, :, :][x1:x2, y1:y2], interpolation='none',
                         cmap=plt.cm.coolwarm, extent=(y1, y2, x2, x1), origin='upper')
         cbi = plt.colorbar(im)
@@ -535,9 +535,9 @@ class plots:
         deltat = 1000  # in ms
         t = np.linspace(100, -deltat, len(kernel))
         if np.sign(np.mean(kernel)) == -1:
-            plt.plot(t, kernel, color=color_off)
+            plt.plot(t, kernel, color='b')
         else:
-            plt.plot(t, kernel, color=color_on)
+            plt.plot(t, kernel, color='r')
 
         plt.locator_params(axis='y', nbins=4)
         ax = fig.gca()
@@ -560,9 +560,9 @@ class plots:
         fig.add_subplot(2, 2, 4)
 
         if np.sign(np.mean(u)) == -1:
-            plt.plot(t, u, color=color_off)
+            plt.plot(t, u, color='b')
         else:
-            plt.plot(t, u, color=color_on)
+            plt.plot(t, u, color='r')
 
         plt.locator_params(axis='y', nbins=4)
         ax = fig.gca()
