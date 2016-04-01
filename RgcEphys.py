@@ -114,16 +114,16 @@ class preproc:
 
             # double check spiketimes
 
-            for s in range(len(spiketimes)):
-                if spiketimes[s] + int(.01 * fs) < len(dif):
-                    if np.any(dif[spiketimes[s]:spiketimes[s] + int(.01 * fs)] == -1):
-                        continue
-                    else:
-                        spiketimes = np.delete(spiketimes, s)
+            # for s in range(len(spiketimes)):
+            #     if spiketimes[s] + int(.01 * fs) < len(dif):
+            #         if np.any(dif[spiketimes[s]:spiketimes[s] + int(.01 * fs)] == -1):
+            #             continue
+            #         else:
+            #             spiketimes = np.delete(spiketimes, s)
 
         rec_len = len(voltage_trace)
 
-        return voltage_trace, rec_len, spiketimes,
+        return voltage_trace, rec_len, spiketimes
 
     def trigger_detect(filename, ch_trigger):
 
