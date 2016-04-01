@@ -112,7 +112,7 @@ class preproc:
 
             # double check spiketimes
 
-            for s in range(len(spiketimes)):
+            for s in range(len(spiketimes)-1):
                 if spiketimes[s] + int(.01 * fs) < len(dif):
                     if np.any(dif[spiketimes[s]:spiketimes[s] + int(.01 * fs)] == -1):
                         continue
