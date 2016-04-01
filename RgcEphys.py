@@ -113,10 +113,11 @@ class preproc:
             # double check spiketimes
 
             for s in range(len(spiketimes)):
-                if np.any(dif[spiketimes[s]:spiketimes[s] + int(.01 * fs)] == -1):
-                    continue
-                else:
-                    spiketimes = np.delete(spiketimes, s)
+                if spiketimes[s] + int(.01 * fs) < len(dif):
+                    if np.any(dif[spiketimes[s]:spiketimes[s] + int(.01 * fs)] == -1):
+                        continue
+                    else:
+                        spiketimes = np.delete(spiketimes, s)
 
         rec_len = len(voltage_trace)
 
@@ -664,6 +665,113 @@ class plots:
 
         return fig
 
+    def plt_ds(hist, deg):
+        plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
+                             'figure.figsize': (10, 8)})
+
+        with sns.axes_style('whitegrid'):
+            fig = plt.figure()
+            ax = plt.axes(polar=True, axisbg='white')
+            width = .2
+            rads = np.radians(deg) - width / 2
+            counts = np.mean(hist, 0)
+            plt.bar(rads, counts, width=width, facecolor='k')
+
+            ycounts = [round(max(counts) / 2), round(max(counts))]
+            ax.set_theta_direction(-1)
+            ax.set_theta_offset(np.pi / 2)
+            ax.set_yticks(ycounts)
+            ax.grid(color='k', linestyle='--')
+            # ax.legend('mean number of spikes',fontsize=14,loc='lower left')
+
+        return fig, ax
+
+    def plt_ds_traces(voltage_trace, triggertimes, rec_type, fs = 10000):
+        
+        plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
+                             'figure.figsize': (10, 8)})
+        
+        # stimulus parameter
+        
+        t_off = 2 * fs  # in s * fs
+        t_on = 2 * fs  # in s
+
+        nconditions = 8
+        ntrials = int(np.floor(len(triggertimes)/nconditions))
+
+        idx = np.array([0, 4, 6, 2, 5, 1, 7, 3])
+        deg = np.arange(0, 360, 360 / 8).astype(int)
+
+        true_loop_duration = []
+        for trial in range(1, ntrials):
+            true_loop_duration.append(triggertimes[trial * nconditions] - triggertimes[(trial - 1) * nconditions])
+        #loop_duration_n = np.ceil(np.mean(true_loop_duration))
+
+        stim = np.zeros(voltage_trace.shape)
+
+        for i in range(len(triggertimes)):
+            stim[triggertimes[i]:triggertimes[i] + t_on] = 1
+
+        v_trace_trial = []
+        stim_trial = []
+        for i in range(len(triggertimes)):
+            v_trace_trial.append(np.array(voltage_trace[triggertimes[i]:triggertimes[i] + t_on + t_off]))
+            stim_trial.append(np.array(stim[triggertimes[i]:triggertimes[i] + t_on + t_off]))
+
+        plt.rcParams.update({'figure.subplot.hspace': .1, 'figure.figsize': (15, 8)})
+        N = len(v_trace_trial)
+        fig1, axarr = plt.subplots(int(N / nconditions) + 1, nconditions, sharex=True, sharey=True)  # len(triggertimes)
+        for i in range(N + nconditions):
+            rowidx = int(np.floor(i / nconditions))
+            colidx = int(i - rowidx * nconditions)
+            if rowidx == 0:
+                axarr[rowidx, colidx].plot(stim_trial[i] * np.max(v_trace_trial) - np.max(v_trace_trial), 'k')
+                axarr[rowidx, colidx].set_xticks([])
+                axarr[rowidx, colidx].set_yticks([])
+            else:
+                axarr[rowidx, colidx].plot(v_trace_trial[i - nconditions], 'k')
+                axarr[rowidx, colidx].set_xticks([])
+                axarr[rowidx, colidx].set_yticks([])
+        plt.suptitle('Traces sorted by trial (row) and direction (columns)', fontsize=20)
+
+        # Heatmap
+        if rec_type == 'intracell':
+            arr = np.array(v_trace_trial)
+            arr = arr.reshape(ntrials, nconditions, arr.shape[1])
+
+            for trial in range(ntrials):
+                arr[trial, :, :] = arr[trial, :, :][idx]
+
+            l = []
+            for cond in range(nconditions):
+                for trial in range(ntrials):
+                    l.append(arr[trial, cond, :])
+
+            fig2, ax = plt.subplots()
+
+            intensity = np.array(l).reshape(ntrials, nconditions, len(l[0]))
+
+            column_labels = np.linspace(0, 4, 5)
+            row_labels = deg.astype(int)
+
+            plt.pcolormesh(np.mean(intensity, 0), cmap=plt.cm.coolwarm)
+            cax = plt.colorbar()
+            cax.set_label('voltage [mV]', rotation=270, labelpad=50)
+            plt.xlabel('time [s]')
+            plt.ylabel('direction [deg]')
+            plt.title('Average membrane potential')
+
+            ax.set_xticks(np.linspace(0, len(l[0]), 5), minor=False)
+            ax.set_yticks(np.arange(intensity.shape[1]) + .5, minor=False)
+
+            ax.invert_yaxis()
+            ax.xaxis.set_ticks_position('bottom')
+
+            ax.set_xticklabels(column_labels, minor=False)
+            ax.set_yticklabels(row_labels, minor=False)
+        else:
+            fig2, ax = plt.subplots()
+        return fig1, fig2
 
 
 
