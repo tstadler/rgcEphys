@@ -501,6 +501,12 @@ class plots:
         :param v
         """
         from matplotlib import ticker
+        import matplotlib
+
+        my_cmap = plt.cm.get_cmap('coolwarm')
+        norm = matplotlib.colors.Normalize(min(kernel), max(kernel))
+        color_off = my_cmap(norm(min(kernel) + .02))
+        color_on = my_cmap(norm(max(kernel) - .02))
 
         plt.rcParams.update(
             {'figure.figsize': (15, 8), 'figure.subplot.hspace': .2, 'figure.subplot.wspace': 0, 'ytick.major.pad': 10})
@@ -511,20 +517,28 @@ class plots:
 
         tau = int(input('Select best time lag tau for rf mapping [in ms]: '))
         frame = int(10 - tau / 10)
-        x1 = int(input('And the pixel borders: x1: '))
-        x2 = int(input('And the pixel borders: x2: '))
-        y1 = int(input('And the pixel borders: y1: '))
-        y2 = int(input('And the pixel borders: y2: '))
-
+        # x1 = int(input('And the pixel borders: x1: '))
+        # x2 = int(input('And the pixel borders: x2: '))
+        # y1 = int(input('And the pixel borders: y1: '))
+        # y2 = int(input('And the pixel borders: y2: '))
+        (x1, x2, y1, y2) = (0, 14, 0, 14)
         im = plt.imshow(sta[frame, :, :][x1:x2, y1:y2], interpolation='none',
                         cmap=plt.cm.coolwarm, extent=(y1, y2, x2, x1), origin='upper')
+        cbi = plt.colorbar(im)
         plt.xticks([])
         plt.yticks([])
+        tick_locator = ticker.MaxNLocator(nbins=6)
+        cbi.locator = tick_locator
+        cbi.update_ticks()
 
         fig.add_subplot(2, 2, 2)
         deltat = 1000  # in ms
         t = np.linspace(100, -deltat, len(kernel))
-        plt.plot(t, kernel)
+        if np.sign(np.mean(kernel)) == -1:
+            plt.plot(t, kernel, color=color_off)
+        else:
+            plt.plot(t, kernel, color=color_on)
+
         plt.locator_params(axis='y', nbins=4)
         ax = fig.gca()
         ax.set_xticklabels([])
@@ -534,11 +548,22 @@ class plots:
         fig.add_subplot(2, 3, 4)
         im = plt.imshow(v.reshape(sta.shape[1], sta.shape[2])[x1:x2, y1:y2], interpolation='none',
                         cmap=plt.cm.coolwarm, extent=(y1, y2, x2, x1), origin='upper')
+        cbi = plt.colorbar(im)
+        plt.xticks([])
+        plt.yticks([])
+        tick_locator = ticker.MaxNLocator(nbins=6)
+        cbi.locator = tick_locator
+        cbi.update_ticks()
         plt.xticks([])
         plt.yticks([])
 
         fig.add_subplot(2, 2, 4)
-        plt.plot(t, u)
+
+        if np.sign(np.mean(u)) == -1:
+            plt.plot(t, u, color=color_off)
+        else:
+            plt.plot(t, u, color=color_on)
+
         plt.locator_params(axis='y', nbins=4)
         ax = fig.gca()
         ax.set_xlim([100, -deltat])
@@ -547,7 +572,95 @@ class plots:
 
         return fig
 
+    def chirp(psth, f_norm, loop_duration, delT=.1):
 
+        # Plotting parameter
+        plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
+                             'figure.figsize': (10, 8), 'lines.linewidth': 2})
+
+        # define stimulus
+
+        ChirpDuration = 8  # Time (s) of rising/falling chirp phase
+        ChirpMaxFreq = 8  # Peak frequency of chirp (Hz)
+        IntensityFrequency = 2  # freq at which intensity is modulated
+
+        SteadyOFF = 3.00  # Time (s) of Light OFF at beginning at end of stimulus
+        SteadyOFF2 = 2.00
+        SteadyON = 3.00  # Time (s) of Light 100% ON before and after chirp
+        SteadyMID = 2.00  # Time (s) of Light at 50% for steps
+
+        Fduration = 0.017  # Single Frame duration (s) -  ADJUST DEPENDING ON MONITOR
+        Fduration_ms = 17.0  # Single Frame duration (ms) - ADJUST DEPENDING ON MONITOR
+
+        KK = ChirpMaxFreq / ChirpDuration  # acceleration in Hz / s
+        KK2 = IntensityFrequency
+
+        StimDuration = SteadyOFF2 + SteadyON + 2 * SteadyOFF + 3 * SteadyMID + 2 * ChirpDuration
+
+        def stimulus():
+            t = np.linspace(0, ChirpDuration, ChirpDuration / Fduration)
+            Intensity0 = np.sin(3.141 * KK * np.power(t, 2)) * 127 + 127
+            RampIntensity = 127 * t / (ChirpDuration)
+            Intensity1 = np.sin(2 * 3.141 * KK2 * t) * RampIntensity + 127
+
+            n_off = SteadyOFF / Fduration
+            n_off2 = SteadyOFF2 / Fduration
+            n_on = SteadyON / Fduration
+            n_midi = SteadyMID / Fduration
+            n_chirp = ChirpDuration / Fduration
+
+            t_on = n_off2
+            t_off0 = n_off2 + n_on
+            t_midi0 = n_off2 + n_on + n_off
+            t_chirp0 = n_off2 + n_on + n_off + n_midi
+            t_midi1 = n_off2 + n_on + n_off + n_midi + n_chirp
+            t_chirp1 = n_off2 + n_on + n_off + n_midi + n_chirp + n_midi
+            t_midi2 = n_off2 + n_on + n_off + n_midi + n_chirp + n_midi + n_chirp
+            t_off1 = n_off2 + n_on + n_off + n_midi + n_chirp + n_midi + n_chirp + n_midi
+
+            tChirp = np.linspace(0, StimDuration, StimDuration / Fduration)
+            chirp = np.zeros(len(tChirp))
+
+            chirp[t_on:t_off0 - 1] = 255
+            chirp[t_midi0:t_chirp0] = 127
+            chirp[t_chirp0:t_midi1] = Intensity0
+            chirp[t_midi1:t_chirp1] = 127
+            chirp[t_chirp1:t_midi2 - 1] = Intensity1
+            chirp[t_midi2:t_off1] = 127
+
+            return tChirp, chirp
+
+        T = int(loop_duration)  # in s
+
+        nbins1 = T / delT
+
+        tPSTH = np.linspace(0, T, nbins1)
+
+        ntrials = len(f_norm)
+        fig, axarr = plt.subplots(3, 1, sharex=True)
+        plt.subplots_adjust(hspace=.7)
+
+        for trial in range(ntrials):
+            axarr[1].scatter(f_norm[trial] / 10000, trial * np.ones([len(f_norm[trial] / 10000)]),
+                             color='k')  # scatter(tStar{trial},trial*ones(1,length(tStar{trial})),'b.')
+            axarr[1].set_ylabel('# trial', labelpad=20)
+
+        axarr[1].set_ylim(-.5, ntrials - .5)
+        axarr[1].set_yticklabels(np.linspace(0, ntrials, ntrials + 1).astype(int))
+
+        axarr[2].plot(tPSTH, psth, 'k')
+        axarr[2].set_ylabel('PSTH', labelpad=10)
+        axarr[2].set_yticks([0, max(psth) / 2, max(psth)])
+        axarr[2].set_xlabel('time [s]')
+
+        (tChirp, chirp) = stimulus()
+
+        axarr[0].plot(tChirp, chirp, 'k')
+        axarr[0].set_ylabel('stimulus intensity', labelpad=5)
+        axarr[0].set_yticks([0, 127, 250])
+        axarr[0].set_xlim(0, loop_duration)
+
+        return fig
 
 
 
