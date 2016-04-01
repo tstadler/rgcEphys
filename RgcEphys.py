@@ -509,7 +509,9 @@ class plots:
         color_on = my_cmap(norm(max(kernel) - .02))
 
         plt.rcParams.update(
-            {'figure.figsize': (15, 8), 'figure.subplot.hspace': .2, 'figure.subplot.wspace': 0, 'ytick.major.pad': 10})
+            {'figure.figsize': (10, 8), 'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16,
+            'axes.labelsize': 18,
+            'xtick.labelsize': 16, 'ytick.labelsize': 16, 'lines.linewidth': 4,'figure.figsize': (15, 8), 'figure.subplot.hspace': .2, 'figure.subplot.wspace': 0, 'ytick.major.pad': 10})
 
         fig = plt.figure()
 
