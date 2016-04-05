@@ -515,6 +515,51 @@ class plots:
     contains functions for plotting of analysis results
     """
 
+    def rawtrace(voltage_trace, start, end, fs=10000):
+
+        """
+        :param voltage_trace array (1, rec_len) with the filtered raw trace
+        :param start scalar start of plottted segment in s
+        :param end scalar end of plottted segment in s
+        :param fs scalar sampling rate in Hz
+        """
+
+        x = np.linspace(start, end, (end - start) * fs)
+
+        plt.rcParams.update(
+            {'figure.figsize': (15, 6), 'axes.titlesize': 20, 'axes.labelsize': 18, 'xtick.labelsize': 16,
+             'ytick.labelsize': 16})
+
+        fig, ax = plt.subplots()
+
+        ax.plot(x, voltage_trace[start * fs:end * fs], linewidth=2)
+        ax.set_ylabel('Voltage [mV]', labelpad=20)
+        ax.set_xlabel('Time [s]', labelpad=20)
+        ax.set_xlim([start, end])
+        plt.locator_params(axis='y', nbins=5)
+
+        return fig
+
+    def spiketimes(voltage_trace,spiketimes, start, end, fs=10000):
+
+        plt.rcParams.update(
+            {'figure.figsize': (15, 6), 'axes.titlesize': 20, 'axes.labelsize': 18, 'xtick.labelsize': 16,
+             'ytick.labelsize': 16})
+
+        fig, ax = plt.subplots()
+
+        x = np.linspace(start, end, (end - start) * fs)
+        n = spiketimes[(spiketimes > start * fs) & (spiketimes < end * fs)].astype(int)
+
+        ax.plot(x, voltage_trace[start * fs:end * fs], linewidth=2)
+        ax.plot(x[n - start * fs], voltage_trace[n], 'or')
+        ax.set_xlim([start, end])
+        ax.set_ylabel('Voltage [mV]', labelpad=20)
+        ax.set_xlabel('Time [s]', labelpad=20)
+        plt.locator_params(axis='y', nbins=5)
+
+        return fig
+
     def rf_deltas(sta):
 
         """
@@ -788,8 +833,9 @@ class plots:
 
     def ds_traces(voltage_trace, triggertimes, rec_type, fs=10000):
 
+
         plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
-                             'figure.figsize': (10, 8)})
+                             'figure.figsize': (10, 8),'lines.linewidth':2,'figure.subplot.hspace': .2})
 
         # stimulus parameter
 
