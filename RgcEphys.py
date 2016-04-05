@@ -10,8 +10,6 @@ from itertools import chain
 import os
 import pandas as pd
 import re
-import stfio
-import datetime
 
 class parse:
 
@@ -85,6 +83,7 @@ class parse:
         return fileLocation_table
 
     def abfRead(self,path,filename,path_h5):
+        import stfio
         """
         Input:
         * path: '/path/to/recording/'
