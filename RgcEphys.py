@@ -85,7 +85,7 @@ class preproc:
             dif = tmp2 - tmp
 
             spiketimes = np.where(dif == -1)[0]
-            print(len(spiketimes))
+            print('Number of spikes: ', len(spiketimes))
 
         if rec_type == 'intracell':
             sigma = np.median(np.abs(voltage_trace + np.abs(min(voltage_trace)))) / .6745
@@ -110,16 +110,7 @@ class preproc:
             d_dif = d_tmp2 - d_tmp
 
             spiketimes = np.where(d_dif == -1)[0]
-            print(len(spiketimes))
-
-            # double check spiketimes
-
-            # for s in range(len(spiketimes)):
-            #     if spiketimes[s] + int(.01 * fs) < len(dif):
-            #         if np.any(dif[spiketimes[s]:spiketimes[s] + int(.01 * fs)] == -1):
-            #             continue
-            #         else:
-            #             spiketimes = np.delete(spiketimes, s)
+            print('Number of spikes: ', len(spiketimes))
 
         rec_len = len(voltage_trace)
 
