@@ -658,7 +658,7 @@ class plots:
 
         return fig
 
-    def plt_ds(hist, deg):
+    def ds(hist, deg):
         plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
                              'figure.figsize': (10, 8)})
 
@@ -679,18 +679,18 @@ class plots:
 
         return fig, ax
 
-    def plt_ds_traces(voltage_trace, triggertimes, rec_type, fs = 10000):
-        
+    def ds_traces(voltage_trace, triggertimes, rec_type, fs=10000):
+
         plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
                              'figure.figsize': (10, 8)})
-        
+
         # stimulus parameter
-        
+
         t_off = 2 * fs  # in s * fs
         t_on = 2 * fs  # in s
 
         nconditions = 8
-        ntrials = int(np.floor(len(triggertimes)/nconditions))
+        ntrials = int(np.floor(len(triggertimes) / nconditions))
 
         idx = np.array([0, 4, 6, 2, 5, 1, 7, 3])
         deg = np.arange(0, 360, 360 / 8).astype(int)
@@ -698,7 +698,7 @@ class plots:
         true_loop_duration = []
         for trial in range(1, ntrials):
             true_loop_duration.append(triggertimes[trial * nconditions] - triggertimes[(trial - 1) * nconditions])
-        #loop_duration_n = np.ceil(np.mean(true_loop_duration))
+        # loop_duration_n = np.ceil(np.mean(true_loop_duration))
 
         stim = np.zeros(voltage_trace.shape)
 
@@ -713,22 +713,55 @@ class plots:
 
         plt.rcParams.update({'figure.subplot.hspace': .1, 'figure.figsize': (15, 8)})
         N = len(v_trace_trial)
-        fig1, axarr = plt.subplots(int(N / nconditions) + 1, nconditions, sharex=True, sharey=True)  # len(triggertimes)
-        for i in range(N + nconditions):
-            rowidx = int(np.floor(i / nconditions))
-            colidx = int(i - rowidx * nconditions)
-            if rowidx == 0:
-                axarr[rowidx, colidx].plot(stim_trial[i] * np.max(v_trace_trial) - np.max(v_trace_trial), 'k')
-                axarr[rowidx, colidx].set_xticks([])
-                axarr[rowidx, colidx].set_yticks([])
-            else:
-                axarr[rowidx, colidx].plot(v_trace_trial[i - nconditions], 'k')
-                axarr[rowidx, colidx].set_xticks([])
-                axarr[rowidx, colidx].set_yticks([])
-        plt.suptitle('Traces sorted by trial (row) and direction (columns)', fontsize=20)
+
+        if rec_type == 'extracell':
+
+            scale = np.max(voltage_trace) - np.min(voltage_trace)
+            offset = np.min(voltage_trace)
+
+            fig1, axarr = plt.subplots(int(N / nconditions) + 1, nconditions, sharex=True,
+                                       sharey=True)  # len(triggertimes)
+            for i in range(N + nconditions):
+                rowidx = int(np.floor(i / nconditions))
+                colidx = int(i - rowidx * nconditions)
+                if rowidx == 0:
+                    axarr[rowidx, colidx].plot(stim_trial[i] * scale * .6 + offset * .9, 'k')
+                    axarr[rowidx, colidx].set_xticks([])
+                    axarr[rowidx, colidx].set_yticks([])
+                else:
+                    axarr[rowidx, colidx].plot(v_trace_trial[i - nconditions], 'k')
+                    axarr[rowidx, colidx].set_xticks([])
+                    axarr[rowidx, colidx].set_yticks([])
+            plt.suptitle('Traces sorted by trial (row) and direction (columns)', fontsize=20)
+
+            fig2, ax = plt.subplots()
 
         # Heatmap
         if rec_type == 'intracell':
+
+            # first figure
+
+            fig1, axarr = plt.subplots(int(N / nconditions) + 1, nconditions, sharex=True, sharey=True)
+            scale = np.max(voltage_trace) - np.min(voltage_trace)
+            offset = np.min(voltage_trace)
+
+            for i in range(N + nconditions):
+                rowidx = int(np.floor(i / nconditions))
+                colidx = int(i - rowidx * nconditions)
+                if rowidx == 0:
+                    axarr[rowidx, colidx].plot(stim_trial[i] * scale * .6 + offset * .9, 'k')
+                    axarr[rowidx, colidx].set_xticks([])
+                    axarr[rowidx, colidx].set_yticks([])
+                else:
+                    axarr[rowidx, colidx].plot(v_trace_trial[i - nconditions], 'k')
+                    axarr[rowidx, colidx].set_xticks([])
+                    axarr[rowidx, colidx].set_yticks([])
+            plt.suptitle('Traces sorted by trial (row) and direction (columns)', fontsize=20)
+
+            # second figure
+
+            fig2, ax = plt.subplots()
+
             arr = np.array(v_trace_trial)
             arr = arr.reshape(ntrials, nconditions, arr.shape[1])
 
@@ -739,8 +772,6 @@ class plots:
             for cond in range(nconditions):
                 for trial in range(ntrials):
                     l.append(arr[trial, cond, :])
-
-            fig2, ax = plt.subplots()
 
             intensity = np.array(l).reshape(ntrials, nconditions, len(l[0]))
 
@@ -763,7 +794,7 @@ class plots:
             ax.set_xticklabels(column_labels, minor=False)
             ax.set_yticklabels(row_labels, minor=False)
         else:
-            fig2, ax = plt.subplots()
+            print('Unknown recording type')
         return fig1, fig2
 
 
