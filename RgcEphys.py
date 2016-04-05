@@ -542,6 +542,14 @@ class plots:
 
     def spiketimes(voltage_trace,spiketimes, start, end, fs=10000):
 
+        """
+            :param voltage_trace array (1, rec_len) with the filtered raw trace
+            :param spiketimes array (1,nSpikes) with spike times in sample points
+            :param start scalar start of plottted segment in s
+            :param end scalar end of plottted segment in s
+            :param fs scalar sampling rate in Hz
+            """
+
         plt.rcParams.update(
             {'figure.figsize': (15, 6), 'axes.titlesize': 20, 'axes.labelsize': 18, 'xtick.labelsize': 16,
              'ytick.labelsize': 16})
@@ -950,6 +958,72 @@ class plots:
             print('Unknown recording type')
         return fig1, fig2
 
+    def on_off(voltage_trace, triggertimes, rec_type, fs=10000):
+
+        t_off = .5 * fs  # in s * fs
+        t_on = .5 * fs  # in s
+
+        stim = np.zeros(voltage_trace.shape)
+
+        for i in range(len(triggertimes)):
+            stim[triggertimes[i] + t_off:triggertimes[i] + t_off + 2 * t_on] = 1
+
+        v_trace_trial = []
+        stim_trial = []
+        for i in range(len(triggertimes)):
+            v_trace_trial.append(np.array(voltage_trace[triggertimes[i]:triggertimes[i] + 2 * t_off + 2 * t_on]))
+            stim_trial.append(np.array(stim[triggertimes[i]:triggertimes[i] + 2 * t_off + 2 * t_on]))
+
+        scale = np.max(voltage_trace) - np.min(voltage_trace)
+        offset = np.min(voltage_trace)
+
+        plt.rcParams.update(
+            {'axes.titlesize': 20, 'axes.labelsize': 18, 'xtick.labelsize': 16, 'ytick.labelsize': 16,
+             'figure.figsize': (15, 8), 'figure.subplot.hspace': .1})
+        fig1, axarr = plt.subplots(4, int(np.ceil(len(triggertimes) / 2)), sharex=True, sharey=True)
+
+        for i in range(len(v_trace_trial)):
+            rowidx = 2 * int(np.ceil((i + 1) / (len(v_trace_trial) * .5)) - 1)
+            colidx = int(i - (rowidx) * len(v_trace_trial) * .5)
+            axarr[rowidx, colidx].plot(stim_trial[i] * scale + offset, 'k', linewidth=2)
+            axarr[rowidx, colidx].set_xticks([])
+            axarr[rowidx, colidx].set_yticks([])
+            axarr[rowidx + 1, colidx].plot(v_trace_trial[i], 'k')
+            axarr[rowidx + 1, colidx].set_xticks([])
+            axarr[rowidx + 1, colidx].set_yticks([])
+
+        # Plot heatmap
+
+        if rec_type == 'intracell':
+
+            fig2, ax = plt.subplots()
+
+            intensity = np.array(v_trace_trial)
+
+            plt.pcolormesh(intensity, cmap=plt.cm.coolwarm)
+
+            cax = plt.colorbar()
+            cax.set_label('voltage [mV]', rotation=270, labelpad=50)
+
+            ax.set_ylim([0, len(v_trace_trial)])
+            ax.set_xticks(np.linspace(0, intensity.shape[1], 5), minor=False)
+            # ax.set_yticks(np.linspace(0,intensity.shape[0],5), minor=False)
+
+            ax.invert_yaxis()
+            ax.xaxis.set_ticks_position('bottom')
+
+            # row_labels = np.linspace(0,intensity.shape[0],5)
+            column_labels = np.linspace(0, 2, 5)
+            ax.set_xticklabels(column_labels, minor=False)
+            # ax.set_yticklabels(row_labels, minor=False)
+
+            plt.xlabel('time [s]')
+            plt.ylabel('trial')
+            plt.title('Membrane potential')
+        else:
+            fi2, ax = plt.subplots()
+
+        return fig1, fig2
 
 
 
