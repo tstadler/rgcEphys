@@ -10,33 +10,35 @@ from itertools import chain
 import os
 import pandas as pd
 import re
+import stfio
+import datetime
 
 class parse:
 
-
-    def fileScan(dataDirectory='/notebooks/Data', fileTypes=['abf', 'ini', 'h5', 'smh', 'smp']):
-        fileLocation_pathlist = list(chain(*[findFileType('*.' + suffix, dataDirectory) for suffix in fileTypes]))
-        fileLocation_table = locationToTable(fileLocation_pathlist)
+    def fileScan(self,dataDirectory,fileTypes = ['abf','ini','h5','smh','smp']):
+        parser = parse()
+        fileLocation_pathlist = list(chain(*[parser.findFileType('*.' + suffix, dataDirectory) for suffix in fileTypes]))
+        fileLocation_table = parser.locationToTable(fileLocation_pathlist)
 
         return fileLocation_table
 
-    def findFileType(fileType, directory):  # Type: '*.ini'
+    def findFileType(self,fileType,directory): # Type: '*.ini'
         # Find .ini files in all folders and subfolders of a specified directory
         fileLocation = [os.path.join(dirpath, f)
-                        for dirpath, dirnames, files in os.walk(directory)
-                        for f in fnmatch.filter(files, fileType)]
+        for dirpath, dirnames, files in os.walk(directory)
+        for f in fnmatch.filter(files,fileType)]
         return fileLocation
 
-    def parseFileLocation(fileLocation, targetString='/'):
+    def parseFileLocation(self,fileLocation,targetString='/'):
         # Extract useful information from directory path
         for fileType in list(fileLocation.keys()):
             backslash = [m.start() for m in re.finditer(targetString, entry)]
-            headerFiles[entry].loc['surname'] = ['string', entry[backslash[-4] + 1:backslash[-3]]]
-            headerFiles[entry].loc['date'] = ['string', entry[backslash[-3] + 1:backslash[-2]]]
-            headerFiles[entry].loc['nExperiment'] = ['string', entry[backslash[-2] + 1:backslash[-1]]]
+            headerFiles[entry].loc['surname'] = ['string',entry[backslash[-4]+1:backslash[-3]]]
+            headerFiles[entry].loc['date'] = ['string',entry[backslash[-3]+1:backslash[-2]]]
+            headerFiles[entry].loc['nExperiment'] = ['string',entry[backslash[-2]+1:backslash[-1]]]
         return headerFiles
 
-    def readSHA1(fileLocation):
+    def readSHA1(self,fileLocation):
         # Find SHA-1 for file at file location
         BLOCKSIZE = 65536
         hasher = hashlib.sha1()
@@ -47,7 +49,7 @@ class parse:
                 buf = afile.read(BLOCKSIZE)
         return hasher.hexdigest()
 
-    def locationToTable(fileLocation_pathlist, targetString='/', topDirectory='Data/'):
+    def locationToTable(self,fileLocation_pathlist,targetString='/',topDirectory='Data/'):
         # Specification of dataframe in which to store information about files
         tableColumns = ['Surname', 'Date', 'Experiment', 'Subexpr', 'Filename', 'Filetype', 'Path', 'SHA1']
         fileLocation_table = pd.DataFrame(columns=tableColumns)
@@ -55,32 +57,60 @@ class parse:
         for itx in range(len(fileLocation_pathlist)):
             path = fileLocation_pathlist[itx]
             # Find filepath within top directory, typically the 'Data/' folder
-            subDirectory = path[path.find(topDirectory) + len(topDirectory):]
+            subDirectory = path[path.find(topDirectory)+len(topDirectory):]
 
             # Find location of backslashes, which demarcate folders
             backslash = [m.start() for m in re.finditer(targetString, subDirectory)]
 
             # Extract folder and file names
-            file = subDirectory[backslash[-1] + 1:]
+            file = subDirectory[backslash[-1]+1:]
             fileName = file[:file.find('.')]
             fileType = file[file.find('.'):]
             Surname = subDirectory[:backslash[0]]
-            Date = subDirectory[backslash[0] + 1:backslash[1]]
+            Date = subDirectory[backslash[0]+1:backslash[1]]
 
             Experiment = np.nan
             Subexpr = np.nan
             if len(backslash) > 2:
-                Experiment = subDirectory[backslash[1] + 1:backslash[2]]
+                Experiment = subDirectory[backslash[1]+1:backslash[2]]
             if len(backslash) > 3:
-                Subexpr = subDirectory[backslash[2] + 1:backslash[3]]
+                Subexpr = subDirectory[backslash[2]+1:backslash[3]]
 
             SHA1 = np.nan
             # SHA1 = readSHA1(path)
 
-            fileEntry = [Surname, Date, Experiment, Subexpr, fileName, fileType, path, SHA1]
+            fileEntry = [Surname,Date,Experiment,Subexpr,fileName,fileType,path,SHA1]
             fileLocation_table.loc[itx] = fileEntry
 
         return fileLocation_table
+
+    def abfRead(self,path,filename,path_h5):
+        """
+        Input:
+        * path: '/path/to/recording/'
+        * filename: 'filename' without extension, has to be saved with ending .abf
+        * path_h5: '/path/' where converted file is written to
+
+        Output:
+        file converted to hdf5 format, saved at path_h5
+        """
+        rec = stfio.read(path)
+
+        print(rec.comment)
+        print(rec.date)
+        print(rec.datetime)
+        print(rec.dt)
+        print(rec.xunits)
+
+        d = os.path.dirname(path_h5)
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+        filename_new = filename+'.h5'
+
+        rec.write(path_h5+filename_new)
+
+        print('hdf5 was written as '+filename_new+' at '+path_h5)
 
 class preproc:
 
