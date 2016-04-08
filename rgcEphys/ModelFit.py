@@ -1,13 +1,12 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import scipy.ndimage as scimage
 import scipy.optimize as scoptimize
-import pandas as pd
 from sklearn.cross_validation import KFold
 
-import matplotlib.pyplot as plt
-import seaborn as sns
+from rgcEphys import RgcEphys
 
-import rgcEpyhs.RgcEphys
 
 class lnp_fit:
 
