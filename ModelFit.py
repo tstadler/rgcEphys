@@ -7,7 +7,7 @@ from sklearn.cross_validation import KFold
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import RgcEphys
+import rgcEpyhs.RgcEphys
 
 class lnp_fit:
 
