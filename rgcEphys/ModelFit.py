@@ -192,7 +192,7 @@ class lnp_fit:
 
         (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
 
-        s_conv, sta_inst = self.stim_conv(filename, ch_trigger, ch_voltage, rec_type, mseq)
+        s_conv, sta_inst = self.stim_conv(filename, ch_voltage, ch_trigger, rec_type, mseq)
 
         s = np.transpose(s_conv)  # make it a (n x T) array
 
@@ -266,6 +266,7 @@ class lnp_fit:
         :param rec_type: enum('intracell', 'extracell') patch mode
         :param mseq: str '/path/to/mseq'
         :param k scalar k-fold cross-validation performed on the data set
+        :param theta list (1 x nTheta) with values for the regularization parameter that should be cross-validated
         :param freq scalar stimulation frequency in Hz
         :param fs: scalar sampling rate in Hz
 
