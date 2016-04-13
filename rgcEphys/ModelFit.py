@@ -395,4 +395,26 @@ class lnp_fit:
             LNP_dict['r2'].append(np.var(y[test]) / np.var(y_test))
         LNP_df = pd.DataFrame(LNP_dict)
 
-        return LNP_df, theta_df
+        return LNP_df, theta_df, theta_opt
+
+class plots:
+
+    def cross_val_rf(lnp_df,theta_opt=0):
+
+        plt.rcParams.update({'figure.figsize': (15, 8)})
+
+        fig_w_nLL, axarr = plt.subplots(2, int(lnp_df.shape[0] / 2))
+        ax = axarr.reshape(lnp_df.shape[0])
+
+        for ix, row in lnp_df.iterrows():
+            im = ax[ix].imshow(row['w'].reshape(20, 15), interpolation='none', cmap=plt.cm.coolwarm)
+            ax[ix].set_title('nLL: ' + str("%.2f" % round(row['nLL test'], 2)))
+            ax[ix].set_xticklabels([])
+            ax[ix].set_yticklabels([])
+
+            fig_w_nLL.subplots_adjust(right=0.8)
+            cbar_ax = fig_w_nLL.add_axes([0.85, 0.2, 0.02, 0.6])
+            cbar = fig_w_nLL.colorbar(im, cax=cbar_ax)
+            cbar.set_label('stimulus intensity', labelpad=40, rotation=270)
+        plt.suptitle('Cross-validated RF with ridge regulrization: ' + '$ \\theta $ = ' + str(theta_opt), size=20)
+
