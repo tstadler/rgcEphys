@@ -109,18 +109,23 @@ class lnp_fit:
 
             return F_conv, sta_inst
 
-    def lnp(self,filename, ch_trigger, ch_voltage, rec_type, mseq, ll_fun, jac, w0, k, freq=5, fs=10000):
+    def lnp(self,filename, ch_voltage, ch_trigger, rec_type, mseq, ll_fun, jac, w0, k, freq=5, fs=10000):
 
         """
         Fit the instantaneous RF of an LNP model with the given likelihood fun
 
-        :param s_conv array (stimDim[0]*stimDim[1],T) stimulus projected onto time kernel
-        :param spiketimes array (1,nSpikes)
-        :param triggertimes array(1,T)
+        :param filename: str '/path/to/example.h5'
+        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :param rec_type: enum('intracell', 'extracell') patch mode
+        :param mseq: str '/path/to/mseq'
         :param ll_fun function pointer to the negative log-likelihood function
         :param jac boolen indicating whether fun returns gradient as well, grad has dimension (n,1)
         :param w0 array (n,1) initial rf guess
         :param k scalar k-fold cross-validation performed on the data set
+        :param freq scalar stimulation frequency in Hz
+        :param fs: scalar sampling rate in Hz
+
 
         """
         (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
@@ -168,15 +173,19 @@ class lnp_fit:
 
         return LNP_df
 
-    def lnp_exp(self, filename, ch_trigger, ch_voltage, rec_type, mseq, k, freq=5, fs=10000):
+    def lnp_exp(self, filename, ch_voltage, ch_trigger, rec_type, mseq, k, freq=5, fs=10000):
 
         """
         Fit the instantaneous RF of an LNP model with exponential non-linearity
 
-        :param s_conv array (stimDim[0]*stimDim[1],T) stimulus projected onto time kernel
-        :param spiketimes array (1,nSpikes)
-        :param triggertimes array(1,T)
+        :param filename: str '/path/to/example.h5'
+        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :param rec_type: enum('intracell', 'extracell') patch mode
+        :param mseq: str '/path/to/mseq'
         :param k scalar k-fold cross-validation performed on the data set
+        :param freq scalar stimulation frequency in Hz
+        :param fs: scalar sampling rate in Hz
 
         """
         (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
@@ -246,23 +255,27 @@ class lnp_fit:
 
         return LNP_df
 
-    def lnp_exp_ridge(self, filename, ch_trigger, ch_voltage, rec_type, mseq, k, theta, freq=5, fs=10000):
+    def lnp_exp_ridge(self, filename,  ch_voltage, ch_trigger, rec_type, mseq, k, theta, freq=5, fs=10000):
 
         """
-        Fit the instantaneous RF of an LNP model with exponential non-linearity nad ridge regression on the filter components
+        Fit the instantaneous RF of an LNP model with exponential non-linearity and ridge regression on the filter componennts
 
-        :param s_conv array (stimDim[0]*stimDim[1],T) stimulus projected onto time kernel
-        :param spiketimes array (1,nSpikes)
-        :param triggertimes array(1,T)
+        :param filename: str '/path/to/example.h5'
+        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :param rec_type: enum('intracell', 'extracell') patch mode
+        :param mseq: str '/path/to/mseq'
         :param k scalar k-fold cross-validation performed on the data set
-        :param theta list (1 x nTheta) with values that should be cross-validated for the regression parameter
+        :param freq scalar stimulation frequency in Hz
+        :param fs: scalar sampling rate in Hz
 
         """
+
         (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
 
         (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
 
-        s_conv, sta_inst = self.stim_conv(filename, ch_trigger, ch_voltage, rec_type, mseq)
+        s_conv, sta_inst = self.stim_conv(filename, ch_voltage, ch_trigger, rec_type, mseq)
 
         s = np.transpose(s_conv)  # make it a (n x T) array
 
@@ -333,7 +346,7 @@ class lnp_fit:
             nLL_temp_test = []
             pred_test = []
             for train, test in kf:
-                res = scipy.optimize.minimize(nLL_ridge, w0, args=(s[:, train], y[train], t), jac=True, method='TNC')
+                res = scoptimize.minimize(nLL_ridge, w0, args=(s[:, train], y[train], t), jac=True, method='TNC')
                 print(res.message, 'neg log-liklhd: ', res.fun)
                 nLL_temp_train.append(res.fun)
                 nLL_temp_test.append(nLL(res.x, s[:, test], y[test])[0])
@@ -364,7 +377,7 @@ class lnp_fit:
         LNP_dict['r2'] = []
 
         for train, test in kf:
-            res = scipy.optimize.minimize(nLL_ridge, w0, args=(s[:, train], y[train], theta_opt), jac=True,
+            res = scoptimize.minimize(nLL_ridge, w0, args=(s[:, train], y[train], theta_opt), jac=True,
                                           method='TNC')
             print(res.message, 'neg log-liklhd: ', res.fun)
 
