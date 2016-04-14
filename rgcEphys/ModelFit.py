@@ -340,23 +340,17 @@ class lnp_fit:
 
         """
 
-        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
-
-        (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
-
-        s_conv, sta_inst = self.stim_conv(filename, ch_voltage, ch_trigger, rec_type, mseq)
-
         s = np.transpose(s_conv)  # make it a (n x T) array
+        (n,T) = s.shape
 
         spiketimes = spiketimes[spiketimes > triggertimes[0]]
         spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
 
         # bin spiketimes as stimulus frames
-        T = s.shape[1]
 
         y = np.histogram(spiketimes, bins=T,
                          range=[triggertimes[0], triggertimes[len(triggertimes) - 1] + (fs / freq)])[0]
-        w0 = np.zeros(sta_inst.shape)
+        w0 = np.zeros(n)
 
         kf = KFold(T, n_folds=k)
 
