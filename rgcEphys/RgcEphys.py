@@ -843,7 +843,7 @@ class plots:
 
 
         plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
-                             'figure.figsize': (10, 8),'lines.linewidth':2,'figure.subplot.hspace': .2})
+                             'figure.figsize': (10, 8),'lines.linewidth':2,'figure.subplot.hspace': .2,'figure.subplot.hspace': .2})
 
         # stimulus parameter
 
@@ -960,6 +960,10 @@ class plots:
 
     def on_off(voltage_trace, triggertimes, rec_type, fs=10000):
 
+        plt.rcParams.update({'xtick.labelsize': 16, 'ytick.labelsize': 16, 'axes.labelsize': 16, 'axes.titlesize': 20,
+                             'figure.figsize': (10, 8), 'lines.linewidth': 2, 'figure.subplot.hspace': .2,
+                             'figure.subplot.hspace': .2})
+
         t_off = .5 * fs  # in s * fs
         t_on = .5 * fs  # in s
 
@@ -970,7 +974,7 @@ class plots:
 
         v_trace_trial = []
         stim_trial = []
-        for i in range(len(triggertimes)):
+        for i in range(len(triggertimes)-1):
             v_trace_trial.append(np.array(voltage_trace[triggertimes[i]:triggertimes[i] + 2 * t_off + 2 * t_on]))
             stim_trial.append(np.array(stim[triggertimes[i]:triggertimes[i] + 2 * t_off + 2 * t_on]))
 
