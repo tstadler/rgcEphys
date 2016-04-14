@@ -112,7 +112,7 @@ class lnp_fit:
     def lnp(self,filename, ch_voltage, ch_trigger, rec_type, mseq, ll_fun, jac, w0, k, freq=5, fs=10000):
 
         """
-        Fit the instantaneous RF of an LNP model with the given likelihood fun
+        Convolve the stimulus ensemble with the time kernel obtained from STA and fit the instantaneous RF of an LNP model with the given likelihood fun
 
         :arg filename: str '/path/to/example.h5'
         :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
@@ -173,39 +173,33 @@ class lnp_fit:
 
         return LNP_df
 
-    def lnp_exp(self, filename, ch_voltage, ch_trigger, rec_type, mseq, k, freq=5, fs=10000):
+    def lnp_exp(self, spiketimes, triggertimes, s_conv, k, freq=5, fs=10000):
 
         """
         Fit the instantaneous RF of an LNP model with exponential non-linearity
 
-        :arg filename: str '/path/to/example.h5'
-        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :arg rec_type: enum('intracell', 'extracell') patch mode
-        :arg mseq: str '/path/to/mseq'
+        :arg spiketimes: array (1 x nSpikes)
+        :arg triggertimes: array (1 x T)
+        :arg s_conv: array (T x n)
         :arg k scalar k-fold cross-validation performed on the data set
         :arg freq scalar stimulation frequency in Hz
         :arg fs: scalar sampling rate in Hz
 
         """
-        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
-
-        (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
-
-        s_conv, sta_inst = self.stim_conv(filename, ch_voltage, ch_trigger, rec_type, mseq)
-
         s = np.transpose(s_conv)  # make it a (n x T) array
+
+        (n, T) = s.shape
 
         spiketimes = spiketimes[spiketimes > triggertimes[0]]
         spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
 
         # bin spiketimes as stimulus frames
 
-        T = s.shape[1]
+
 
         y = np.histogram(spiketimes, bins=T,
                          range=[triggertimes[0], triggertimes[len(triggertimes) - 1] + (fs / freq)])[0]
-        w0 = np.zeros(sta_inst.shape)
+        w0 = np.zeros(n)
 
         kf = KFold(T, n_folds=k)
         LNP_dict = {}
@@ -235,30 +229,23 @@ class lnp_fit:
 
         return LNP_df
 
-    def lnp_exp_ridge(self, filename,  ch_voltage, ch_trigger, rec_type, mseq, k, theta, freq=5, fs=10000):
+    def lnp_exp_ridge(self, spiketimes, triggertimes, s_conv, k, theta, freq=5, fs=10000):
 
         """
         Fit the instantaneous RF of an LNP model with exponential non-linearity and ridge regression on the filter componennts
 
-        :arg filename: str '/path/to/example.h5'
-        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :arg rec_type: enum('intracell', 'extracell') patch mode
-        :arg mseq: str '/path/to/mseq'
+        :arg spiketimes: array (1 x nSpikes)
+        :arg triggertimes: array (1 x T)
+        :arg s_conv: array (T x n)
         :arg k scalar k-fold cross-validation performed on the data set
-        :arg theta list (1 x nTheta) with values for the regularization parameter that should be cross-validated
+        :arg theta list (1 x nTheta) with values for the regularization argeter that should be cross-validated
         :arg freq scalar stimulation frequency in Hz
         :arg fs: scalar sampling rate in Hz
 
         """
 
-        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
-
-        (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
-
-        s_conv, sta_inst = self.stim_conv(filename, ch_voltage, ch_trigger, rec_type, mseq)
-
         s = np.transpose(s_conv)  # make it a (n x T) array
+        (n, T) = s.shape
 
         spiketimes = spiketimes[spiketimes > triggertimes[0]]
         spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
@@ -268,11 +255,9 @@ class lnp_fit:
 
         # bin spiketimes as stimulus frames
 
-        T = s.shape[1]
-
         y = np.histogram(spiketimes, bins=T,
                          range=[triggertimes[0], triggertimes[len(triggertimes) - 1] + (fs / freq)])[0]
-        w0 = np.zeros(sta_inst.shape)
+        w0 = np.zeros(n)
 
         kf = KFold(T, n_folds=k)
 
@@ -340,16 +325,14 @@ class lnp_fit:
 
         return LNP_df, theta_df, theta_opt
 
-    def lnp_exp_lasso(self, filename, ch_voltage, ch_trigger, rec_type, mseq, k, theta, freq=5, fs=10000):
+    def lnp_exp_lasso(self, spiketimes, triggertimes, s_conv, k, theta, freq=5, fs=10000):
 
         """
         Fit the instantaneous RF of an LNP model with exponential non-linearity and ridge regression on the filter componennts
 
-        :arg filename: str '/path/to/example.h5'
-        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :arg rec_type: enum('intracell', 'extracell') patch mode
-        :arg mseq: str '/path/to/mseq'
+        :arg spiketimes: array (1 x nSpikes)
+        :arg triggertimes: array (1 x T)
+        :arg s_conv: array (T x n)
         :arg k scalar k-fold cross-validation performed on the data set
         :arg theta list (1 x nTheta) with values for the regularization argeter that should be cross-validated
         :arg freq scalar stimulation frequency in Hz
@@ -526,7 +509,7 @@ class plots:
             cbar_ax = fig_w_nLL.add_axes([0.85, 0.2, 0.02, 0.6])
             cbar = fig_w_nLL.colorbar(im, cax=cbar_ax)
             cbar.set_label('stimulus intensity', labelpad=40, rotation=270)
-        plt.suptitle('Cross-validated RF with' + reg_type +  'regularization: ' + '$ \\theta $ = ' + str(theta_opt), size=20)
+        plt.suptitle('Cross-validated RF with ' + reg_type +  ' regularization: ' + '$ \\theta $ = ' + str(theta_opt), size=20)
 
         return fig_w_nLL
 
