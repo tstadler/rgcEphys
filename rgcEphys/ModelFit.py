@@ -16,14 +16,14 @@ class lnp_fit:
         Convolves the stimulus with the time-kernel obtained from sta and returns the convolved stimulus
         together with the instantaneous spike-triggered average
 
-        :param filename: str '/path/to/example.h5'
-        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :param rec_type: enum('intracell', 'extracell') patch mode
-        :param mseq: str '/path/to/mseq'
-        :param freq scalar stimulation frequency in Hz
-        :param deltat scalar time lag in s for calculating the time kernel
-        :param fs: scalar sampling rate in Hz
+        :arg filename: str '/path/to/example.h5'
+        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :arg rec_type: enum('intracell', 'extracell') patch mode
+        :arg mseq: str '/path/to/mseq'
+        :arg freq scalar stimulation frequency in Hz
+        :arg deltat scalar time lag in s for calculating the time kernel
+        :arg fs: scalar sampling rate in Hz
 
         """
 
@@ -114,17 +114,17 @@ class lnp_fit:
         """
         Fit the instantaneous RF of an LNP model with the given likelihood fun
 
-        :param filename: str '/path/to/example.h5'
-        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :param rec_type: enum('intracell', 'extracell') patch mode
-        :param mseq: str '/path/to/mseq'
-        :param ll_fun function pointer to the negative log-likelihood function
-        :param jac boolen indicating whether fun returns gradient as well, grad has dimension (n,1)
-        :param w0 array (n,1) initial rf guess
-        :param k scalar k-fold cross-validation performed on the data set
-        :param freq scalar stimulation frequency in Hz
-        :param fs: scalar sampling rate in Hz
+        :arg filename: str '/path/to/example.h5'
+        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :arg rec_type: enum('intracell', 'extracell') patch mode
+        :arg mseq: str '/path/to/mseq'
+        :arg ll_fun function pointer to the negative log-likelihood function
+        :arg jac boolen indicating whether fun returns gradient as well, grad has dimension (n,1)
+        :arg w0 array (n,1) initial rf guess
+        :arg k scalar k-fold cross-validation performed on the data set
+        :arg freq scalar stimulation frequency in Hz
+        :arg fs: scalar sampling rate in Hz
 
 
         """
@@ -178,14 +178,14 @@ class lnp_fit:
         """
         Fit the instantaneous RF of an LNP model with exponential non-linearity
 
-        :param filename: str '/path/to/example.h5'
-        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :param rec_type: enum('intracell', 'extracell') patch mode
-        :param mseq: str '/path/to/mseq'
-        :param k scalar k-fold cross-validation performed on the data set
-        :param freq scalar stimulation frequency in Hz
-        :param fs: scalar sampling rate in Hz
+        :arg filename: str '/path/to/example.h5'
+        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :arg rec_type: enum('intracell', 'extracell') patch mode
+        :arg mseq: str '/path/to/mseq'
+        :arg k scalar k-fold cross-validation performed on the data set
+        :arg freq scalar stimulation frequency in Hz
+        :arg fs: scalar sampling rate in Hz
 
         """
         (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
@@ -199,28 +199,8 @@ class lnp_fit:
         spiketimes = spiketimes[spiketimes > triggertimes[0]]
         spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
 
-        # define log-likelihood for lnp_exp
-
-        def nLL(wT, s, y):
-            """
-            Compute the negative log-likelihood of an LNP model wih exponential non-linearity
-
-            :param wT: current receptive field array(stimDim[0]*stimDim[1],)
-            :param s: stimulus array(stimDim[0]*stimDim[1],T)
-            :param y: spiketimes array(,T)
-
-            :return nLL: computed negative log-likelihood scalar
-            :return dnLL: computed first derivative of the nLL
-            """
-
-            r = np.exp(np.dot(wT, s))
-            nLL = np.dot(r - y * np.log(r), np.ones(y.shape))
-
-            dnLL = np.dot(s * r - y * s, np.ones(y.shape))
-
-            return nLL, dnLL
-
         # bin spiketimes as stimulus frames
+
         T = s.shape[1]
 
         y = np.histogram(spiketimes, bins=T,
@@ -237,11 +217,11 @@ class lnp_fit:
         LNP_dict['r2'] = []
 
         for train, test in kf:
-            res = scoptimize.minimize(nLL, w0, args=(s[:, train], y[train]), jac=True, method='TNC')
+            res = scoptimize.minimize(self.nLL, w0, args=(s[:, train], y[train]), jac=True, method='TNC')
             print(res.message, 'neg log-liklhd: ', res.fun)
 
             LNP_dict['nLL train'].append(res.fun)
-            LNP_dict['nLL test'].append(nLL(res.x, s[:, test], y[test])[0])
+            LNP_dict['nLL test'].append(self.nLL(res.x, s[:, test], y[test])[0])
             LNP_dict['w'].append(res.x)
 
             y_test = np.zeros(len(test))
@@ -260,15 +240,15 @@ class lnp_fit:
         """
         Fit the instantaneous RF of an LNP model with exponential non-linearity and ridge regression on the filter componennts
 
-        :param filename: str '/path/to/example.h5'
-        :param ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :param ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :param rec_type: enum('intracell', 'extracell') patch mode
-        :param mseq: str '/path/to/mseq'
-        :param k scalar k-fold cross-validation performed on the data set
-        :param theta list (1 x nTheta) with values for the regularization parameter that should be cross-validated
-        :param freq scalar stimulation frequency in Hz
-        :param fs: scalar sampling rate in Hz
+        :arg filename: str '/path/to/example.h5'
+        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :arg rec_type: enum('intracell', 'extracell') patch mode
+        :arg mseq: str '/path/to/mseq'
+        :arg k scalar k-fold cross-validation performed on the data set
+        :arg theta list (1 x nTheta) with values for the regularization parameter that should be cross-validated
+        :arg freq scalar stimulation frequency in Hz
+        :arg fs: scalar sampling rate in Hz
 
         """
 
@@ -283,48 +263,11 @@ class lnp_fit:
         spiketimes = spiketimes[spiketimes > triggertimes[0]]
         spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
 
-        # define log-likelihood for lnp_exp
 
-        def nLL(wT, s, y):
-            """
-            Compute the negative log-likelihood of an LNP model wih exponential non-linearity
 
-            :param wT: current receptive field array(stimDim[0]*stimDim[1],)
-            :param s: stimulus array(stimDim[0]*stimDim[1],T)
-            :param y: spiketimes array(,T)
-
-            :return nLL: computed negative log-likelihood scalar
-            :return dnLL: computed first derivative of the nLL
-            """
-
-            r = np.exp(np.dot(wT, s))
-            nLL = np.dot(r - y * np.log(r), np.ones(y.shape))
-
-            dnLL = np.dot(s * r - y * s, np.ones(y.shape))
-
-            return nLL, dnLL
-
-        def nLL_ridge(wT, s, y, theta):
-
-            """
-            Compute the negative log-likelihood of an LNP model wih exponential non-linearity
-
-            :param wT: current receptive field array(stimDim[0]*stimDim[1],)
-            :param s: stimulus array(stimDim[0]*stimDim[1],T)
-            :param y: spiketimes array(,T)
-
-            :return nLL: computed negative log-likelihood scalar
-            :return dnLL: computed first derivative of the nLL
-            """
-
-            r = np.exp(np.dot(wT, s))
-            nLL = np.dot(r - y * np.log(r), np.ones(y.shape)) + theta * np.dot(wT, wT)
-
-            dnLL = np.dot(s * r - y * s, np.ones(y.shape)) + 2 * theta * wT
-
-            return nLL, dnLL
 
         # bin spiketimes as stimulus frames
+
         T = s.shape[1]
 
         y = np.histogram(spiketimes, bins=T,
@@ -347,10 +290,10 @@ class lnp_fit:
             nLL_temp_test = []
             pred_test = []
             for train, test in kf:
-                res = scoptimize.minimize(nLL_ridge, w0, args=(s[:, train], y[train], t), jac=True, method='TNC')
+                res = scoptimize.minimize(self.nLL_ridge, w0, args=(s[:, train], y[train], t), jac=True, method='TNC')
                 print(res.message, 'neg log-liklhd: ', res.fun)
                 nLL_temp_train.append(res.fun)
-                nLL_temp_test.append(nLL(res.x, s[:, test], y[test])[0])
+                nLL_temp_test.append(self.nLL(res.x, s[:, test], y[test])[0])
 
                 y_test = np.zeros(len(test))
                 for t in range(len(test)):
@@ -378,12 +321,12 @@ class lnp_fit:
         LNP_dict['r2'] = []
 
         for train, test in kf:
-            res = scoptimize.minimize(nLL_ridge, w0, args=(s[:, train], y[train], theta_opt), jac=True,
+            res = scoptimize.minimize(self.nLL_ridge, w0, args=(s[:, train], y[train], theta_opt), jac=True,
                                           method='TNC')
             print(res.message, 'neg log-liklhd: ', res.fun)
 
             LNP_dict['nLL train'].append(res.fun)
-            LNP_dict['nLL test'].append(nLL(res.x, s[:, test], y[test])[0])
+            LNP_dict['nLL test'].append(self.nLL(res.x, s[:, test], y[test])[0])
             LNP_dict['w'].append(res.x)
 
             y_test = np.zeros(len(test))
@@ -397,9 +340,176 @@ class lnp_fit:
 
         return LNP_df, theta_df, theta_opt
 
+    def lnp_exp_lasso(self, filename, ch_voltage, ch_trigger, rec_type, mseq, k, theta, freq=5, fs=10000):
+
+        """
+        Fit the instantaneous RF of an LNP model with exponential non-linearity and ridge regression on the filter componennts
+
+        :arg filename: str '/path/to/example.h5'
+        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
+        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
+        :arg rec_type: enum('intracell', 'extracell') patch mode
+        :arg mseq: str '/path/to/mseq'
+        :arg k scalar k-fold cross-validation performed on the data set
+        :arg theta list (1 x nTheta) with values for the regularization argeter that should be cross-validated
+        :arg freq scalar stimulation frequency in Hz
+        :arg fs: scalar sampling rate in Hz
+
+        """
+
+        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
+
+        (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
+
+        s_conv, sta_inst = self.stim_conv(filename, ch_voltage, ch_trigger, rec_type, mseq)
+
+        s = np.transpose(s_conv)  # make it a (n x T) array
+
+        spiketimes = spiketimes[spiketimes > triggertimes[0]]
+        spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
+
+        # bin spiketimes as stimulus frames
+        T = s.shape[1]
+
+        y = np.histogram(spiketimes, bins=T,
+                         range=[triggertimes[0], triggertimes[len(triggertimes) - 1] + (fs / freq)])[0]
+        w0 = np.zeros(sta_inst.shape)
+
+        kf = KFold(T, n_folds=k)
+
+        theta_dict = {}
+        theta_dict['theta'] = theta
+        theta_dict['nLL train'] = []
+        theta_dict['nLL test'] = []
+        theta_dict['nLL mean test'] = []
+        theta_dict['pred perform'] = []
+        theta_dict['mean pred perform'] = []
+
+        for t in theta:
+
+            nLL_temp_train = []
+            nLL_temp_test = []
+            pred_test = []
+            for train, test in kf:
+                res = scoptimize.minimize(self.nLL_lasso, w0, args=(s[:, train], y[train], t), jac=True, method='TNC')
+                print(res.message, 'neg log-liklhd: ', res.fun)
+                nLL_temp_train.append(res.fun)
+                nLL_temp_test.append(self.nLL(res.x, s[:, test], y[test])[0])
+
+                y_test = np.zeros(len(test))
+                for t in range(len(test)):
+                    r = np.exp(np.dot(res.x, s[:, test[t]]))
+                    y_test[t] = np.random.poisson(lam=r)
+
+                pred_test.append((sum(y_test == y[test]) / len(test)))
+
+            theta_dict['pred perform'].append(pred_test)
+            theta_dict['mean pred perform'].append(np.mean(pred_test))
+            theta_dict['nLL train'].append(nLL_temp_train)
+            theta_dict['nLL test'].append(nLL_temp_test)
+            theta_dict['nLL mean test'].append(np.mean(nLL_temp_test))
+
+        theta_df = pd.DataFrame(theta_dict)
+
+        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test']))[0]]
+
+        LNP_dict = {}
+        LNP_dict.clear()
+        LNP_dict['nLL train'] = []
+        LNP_dict['nLL test'] = []
+        LNP_dict['w'] = []
+        LNP_dict['pred perform'] = []
+        LNP_dict['r2'] = []
+
+        for train, test in kf:
+            res = scoptimize.minimize(self.nLL_lasso, w0, args=(s[:, train], y[train], theta_opt), jac=True,
+                                      method='TNC')
+            print(res.message, 'neg log-liklhd: ', res.fun)
+
+            LNP_dict['nLL train'].append(res.fun)
+            LNP_dict['nLL test'].append(self.nLL(res.x, s[:, test], y[test])[0])
+            LNP_dict['w'].append(res.x)
+
+            y_test = np.zeros(len(test))
+            for t in range(len(test)):
+                r = np.exp(np.dot(res.x, s[:, test[t]]))
+                y_test[t] = np.random.poisson(lam=r)
+
+            LNP_dict['pred perform'].append((sum(y_test == y[test]) / len(test)))
+            LNP_dict['r2'].append(np.var(y[test]) / np.var(y_test))
+        LNP_df = pd.DataFrame(LNP_dict)
+
+        return LNP_df, theta_df, theta_opt
+
+    def nLL(wT, s, y):
+        """
+        Compute the negative log-likelihood of an LNP model wih exponential non-linearity
+
+        :arg wT: current receptive field array(stimDim[0]*stimDim[1],)
+        :arg s: stimulus array(stimDim[0]*stimDim[1],T)
+        :arg y: spiketimes array(,T)
+
+        :return nLL: computed negative log-likelihood scalar
+        :return dnLL: computed first derivative of the nLL
+        """
+
+        r = np.exp(np.dot(wT, s))
+        nLL = np.dot(r - y * np.log(r), np.ones(y.shape))
+
+        dnLL = np.dot(s * r - y * s, np.ones(y.shape))
+
+        return nLL, dnLL
+
+    def nLL_ridge(wT, s, y, theta):
+
+        """
+        Compute the negative log-likelihood of an LNP model wih exponential non-linearity with a L2 regularization
+
+        :arg wT: current receptive field array(stimDim[0]*stimDim[1],)
+        :arg s: stimulus array(stimDim[0]*stimDim[1],T)
+        :arg y: spiketimes array(,T)
+        :arg theta: list with values for the tuning parameter that should be tested
+
+        :return nLL: computed negative log-likelihood scalar
+        :return dnLL: computed first derivative of the nLL
+        """
+
+        r = np.exp(np.dot(wT, s))
+        nLL = np.dot(r - y * np.log(r), np.ones(y.shape)) + theta * np.dot(wT, wT)
+
+        dnLL = np.dot(s * r - y * s, np.ones(y.shape)) + 2 * theta * wT
+
+        return nLL, dnLL
+
+    def nLL_lasso(wT, s, y, theta):
+
+        """
+        Compute the negative log-likelihood of an LNP model wih exponential non-linearity
+
+        :arg wT: current receptive field array(stimDim[0]*stimDim[1],)
+        :arg s: stimulus array(stimDim[0]*stimDim[1],T)
+        :arg y: spiketimes array(,T)
+        :arg theta: list with values for the tuning parameter that should be tested
+
+        :return nLL: computed negative log-likelihood scalar
+        :return dnLL: computed first derivative of the nLL
+        """
+
+        r = np.exp(np.dot(wT, s))
+        nLL = np.dot(r - y * np.log(r), np.ones(y.shape)) + theta * np.dot(np.abs(wT), np.ones(len(wT)))
+
+        dnLL = np.dot(s * r - y * s, np.ones(y.shape)) + theta * np.ones(wT.shape)
+
+        return nLL, dnLL
+
 class plots:
 
-    def cross_val_rf(lnp_df,theta_opt=0):
+    def cross_val_rf(lnp_df,reg_type,theta_opt=0):
+
+        """
+        :arg lnp_df: pandas dataframe
+        :arg reg_type: str 'type' of regularization
+        """
 
         plt.rcParams.update({'figure.figsize': (15, 8)})
 
@@ -416,5 +526,7 @@ class plots:
             cbar_ax = fig_w_nLL.add_axes([0.85, 0.2, 0.02, 0.6])
             cbar = fig_w_nLL.colorbar(im, cax=cbar_ax)
             cbar.set_label('stimulus intensity', labelpad=40, rotation=270)
-        plt.suptitle('Cross-validated RF with ridge regulrization: ' + '$ \\theta $ = ' + str(theta_opt), size=20)
+        plt.suptitle('Cross-validated RF with' + reg_type +  'regularization: ' + '$ \\theta $ = ' + str(theta_opt), size=20)
+
+        return fig_w_nLL
 
