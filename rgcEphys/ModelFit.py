@@ -481,7 +481,7 @@ class lnp_fit:
 
 class plots:
 
-    def cross_val_rf(lnp_df,reg_type,theta_opt=0):
+    def cross_val_rf(lnp_df,stimDim,reg_type='no',theta_opt=0):
 
         """
         :arg lnp_df: pandas dataframe
@@ -494,7 +494,7 @@ class plots:
         ax = axarr.reshape(lnp_df.shape[0])
 
         for ix, row in lnp_df.iterrows():
-            im = ax[ix].imshow(row['w'].reshape(20, 15), interpolation='none', cmap=plt.cm.coolwarm)
+            im = ax[ix].imshow(row['w'].reshape(stimDim[0], stimDim[1]), interpolation='none', cmap=plt.cm.coolwarm)
             ax[ix].set_title('nLL: ' + str("%.2f" % round(row['nLL test'], 2)))
             ax[ix].set_xticklabels([])
             ax[ix].set_yticklabels([])
