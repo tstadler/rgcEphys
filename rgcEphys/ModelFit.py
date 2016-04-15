@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import scipy.ndimage as scimage
 import scipy.optimize as scoptimize
+import scipy.stats as scstats
 from sklearn.cross_validation import KFold
 
 from rgcEphys import RgcEphys
@@ -150,8 +151,11 @@ class lnp_fit:
         LNP_dict['nLL train'] = []
         LNP_dict['nLL test'] = []
         LNP_dict['w'] = []
-        LNP_dict['pred perform'] = []
-        LNP_dict['r2'] = []
+        LNP_dict['pred correct'] = []
+        LNP_dict['pearson r'] = []
+        LNP_dict['R2'] = []
+        LNP_dict['pred psth'] = []
+        LNP_dict['true psth'] = []
 
         kf = KFold(T, n_folds=k)
         for train, test in kf:
@@ -167,8 +171,12 @@ class lnp_fit:
                 r = np.exp(np.dot(res.x, s[:, test[t]]))
                 y_test[t] = np.random.poisson(lam=r)
 
-            LNP_dict['pred perform'].append((sum(y_test == y[test]) / len(test)))
-            LNP_dict['r2'].append(np.var(y[test]) / np.var(y_test))
+            LNP_dict['pred correct'].append((sum(y_test == y[test]) / len(test)))
+            LNP_dict['pearson r'].append(scstats.pearsonr(y_test, y[test])[0])
+            LNP_dict['R2'].append(
+                1 - np.sum(np.square(y[test] - y_test)) / np.sum(np.square(y[test] - np.mean(y[test]))))
+            LNP_dict['pred psth'].append(y_test * freq)
+            LNP_dict['true psth'].append(y[test] * freq)
         LNP_df = pd.DataFrame(LNP_dict)
 
         return LNP_df
@@ -207,8 +215,11 @@ class lnp_fit:
         LNP_dict['nLL train'] = []
         LNP_dict['nLL test'] = []
         LNP_dict['w'] = []
-        LNP_dict['pred perform'] = []
-        LNP_dict['r2'] = []
+        LNP_dict['pred correct'] = []
+        LNP_dict['pearson r'] = []
+        LNP_dict['R2'] = []
+        LNP_dict['pred psth'] = []
+        LNP_dict['true psth'] = []
 
         for train, test in kf:
             res = scoptimize.minimize(self.nLL, w0, args=(s[:, train], y[train]), jac=True, method='TNC')
@@ -223,8 +234,13 @@ class lnp_fit:
                 r = np.exp(np.dot(res.x, s[:, test[t]]))
                 y_test[t] = np.random.poisson(lam=r)
 
-            LNP_dict['pred perform'].append((sum(y_test == y[test]) / len(test)))
-            LNP_dict['r2'].append(np.var(y[test]) / np.var(y_test))
+            LNP_dict['pred correct'].append((sum(y_test == y[test]) / len(test)))
+            LNP_dict['pearson r'].append(scstats.pearsonr(y_test, y[test])[0])
+            LNP_dict['R2'].append(
+                1 - np.sum(np.square(y[test] - y_test)) / np.sum(np.square(y[test] - np.mean(y[test]))))
+            LNP_dict['pred psth'].append(y_test * freq)
+            LNP_dict['true psth'].append(y[test] * freq)
+
         LNP_df = pd.DataFrame(LNP_dict)
 
         return LNP_df
@@ -302,8 +318,11 @@ class lnp_fit:
         LNP_dict['nLL train'] = []
         LNP_dict['nLL test'] = []
         LNP_dict['w'] = []
-        LNP_dict['pred perform'] = []
-        LNP_dict['r2'] = []
+        LNP_dict['pred correct'] = []
+        LNP_dict['pearson r'] = []
+        LNP_dict['R2'] = []
+        LNP_dict['pred psth'] = []
+        LNP_dict['true psth'] = []
 
         for train, test in kf:
             res = scoptimize.minimize(self.nLL_ridge, w0, args=(s[:, train], y[train], theta_opt), jac=True,
@@ -319,8 +338,12 @@ class lnp_fit:
                 r = np.exp(np.dot(res.x, s[:, test[t]]))
                 y_test[t] = np.random.poisson(lam=r)
 
-            LNP_dict['pred perform'].append((sum(y_test == y[test]) / len(test)))
-            LNP_dict['r2'].append(np.var(y[test]) / np.var(y_test))
+            LNP_dict['pred correct'].append((sum(y_test == y[test]) / len(test)))
+            LNP_dict['pearson r'].append(scstats.pearsonr(y_test, y[test])[0])
+            LNP_dict['R2'].append(
+                1 - np.sum(np.square(y[test] - y_test)) / np.sum(np.square(y[test] - np.mean(y[test]))))
+            LNP_dict['pred psth'].append(y_test * freq)
+            LNP_dict['true psth'].append(y[test] * freq)
         LNP_df = pd.DataFrame(LNP_dict)
 
         return LNP_df, theta_df, theta_opt
@@ -395,8 +418,11 @@ class lnp_fit:
         LNP_dict['nLL train'] = []
         LNP_dict['nLL test'] = []
         LNP_dict['w'] = []
-        LNP_dict['pred perform'] = []
-        LNP_dict['r2'] = []
+        LNP_dict['pred correct'] = []
+        LNP_dict['pearson r'] = []
+        LNP_dict['R2'] = []
+        LNP_dict['pred psth'] = []
+        LNP_dict['true psth'] = []
 
         for train, test in kf:
             res = scoptimize.minimize(self.nLL_lasso, w0, args=(s[:, train], y[train], theta_opt), jac=True,
@@ -412,8 +438,12 @@ class lnp_fit:
                 r = np.exp(np.dot(res.x, s[:, test[t]]))
                 y_test[t] = np.random.poisson(lam=r)
 
-            LNP_dict['pred perform'].append((sum(y_test == y[test]) / len(test)))
-            LNP_dict['r2'].append(np.var(y[test]) / np.var(y_test))
+            LNP_dict['pred correct'].append((sum(y_test == y[test]) / len(test)))
+            LNP_dict['pearson r'].append(scstats.pearsonr(y_test, y[test])[0])
+            LNP_dict['R2'].append(
+                1 - np.sum(np.square(y[test] - y_test)) / np.sum(np.square(y[test] - np.mean(y[test]))))
+            LNP_dict['pred psth'].append(y_test * freq)
+            LNP_dict['true psth'].append(y[test] * freq)
         LNP_df = pd.DataFrame(LNP_dict)
 
         return LNP_df, theta_df, theta_opt
@@ -506,4 +536,28 @@ class plots:
         plt.suptitle('Cross-validated RF with ' + reg_type +  ' regularization: ' + '$ \\theta $ = ' + str(theta_opt), size=20)
 
         return fig_w_nLL
+
+    def psth_corr(lnp_df,freq):
+        plt.rcParams.update({'figure.figsize': (15, 8), 'figure.subplot.wspace': .2, 'figure.subplot.hspace': .2,
+                             'lines.linewidth': 1.5, 'axes.titlesize': 18})
+
+        fig_corr, axarr = plt.subplots(2, int(lnp_df.shape[0] / 2), sharex=True, sharey=True)
+        ax = axarr.reshape(lnp_df.shape[0])
+
+        for ix, row in lnp_df.iterrows():
+            t = np.linspace(0, len(row['pred psth']) / freq, len(row['pred psth']))
+
+            plt.locator_params(axis='y', nbins=4)
+            plt.locator_params(axis='x', nbins=4)
+
+            ax[ix].plot(t, row['pred psth'])
+            ax[ix].plot(t, row['true psth'])
+            ax[ix].set_title('$\\rho$ : ' + str("%.2f" % round(row['pearson r'], 2)))
+            ax[ix].set_xlim([0, len(row['pred psth']) / freq])
+
+        fig_corr.tight_layout()
+        fig_corr.text(0.5, -0.05, 'time [s]', fontsize=24, ha='center')
+        fig_corr.text(-0.05, 0.5, 'PSTH', va='center', rotation='vertical', fontsize=24)
+
+        return fig_corr
 
