@@ -311,7 +311,7 @@ class lnp_fit:
 
         theta_df = pd.DataFrame(theta_dict)
 
-        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test']))[0]]
+        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test'])[0])[0]]
 
         LNP_dict = {}
         LNP_dict.clear()
@@ -411,7 +411,7 @@ class lnp_fit:
 
         theta_df = pd.DataFrame(theta_dict)
 
-        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test']))[0]]
+        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test'])[0])[0]]
 
         LNP_dict = {}
         LNP_dict.clear()
@@ -537,7 +537,7 @@ class plots:
 
         return fig_w_nLL
 
-    def psth_corr(lnp_df,freq):
+    def psth_corr(lnp_df,freq=5):
         plt.rcParams.update({'figure.figsize': (15, 8), 'figure.subplot.wspace': .2, 'figure.subplot.hspace': .2,
                              'lines.linewidth': 1.5, 'axes.titlesize': 18})
 
