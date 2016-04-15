@@ -311,7 +311,10 @@ class lnp_fit:
 
         theta_df = pd.DataFrame(theta_dict)
 
-        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test'])[0])[0]]
+        try:
+            theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test']))[0]]
+        except Exception as e1:
+            theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test'])[0])[0]]
 
         LNP_dict = {}
         LNP_dict.clear()
@@ -410,8 +413,10 @@ class lnp_fit:
             theta_dict['nLL mean test'].append(np.mean(nLL_temp_test))
 
         theta_df = pd.DataFrame(theta_dict)
-
-        theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test'])[0])[0]]
+        try:
+            theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test']))[0]]
+        except Exception as e1:
+            theta_opt = theta[np.where(theta_df['nLL mean test'] == min(theta_df['nLL mean test'])[0])[0]]
 
         LNP_dict = {}
         LNP_dict.clear()
