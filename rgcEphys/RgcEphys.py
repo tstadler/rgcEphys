@@ -10,6 +10,7 @@ from itertools import chain
 import os
 import pandas as pd
 import re
+from IPython.display import display
 
 class parse:
 
@@ -118,7 +119,7 @@ class preproc:
         contains functions for spike and trigger detection including some basic filtering
     """
 
-    def spike_detect(filename, rec_type, ch_voltage, fs = 10000):
+    def spike_detect(self, filename, rec_type, ch_voltage, fs = 10000):
 
         """
             Read electrophysiology data from hdf5 file and detect spiketimes in the voltage signal
@@ -172,6 +173,8 @@ class preproc:
                               analog=False)  # second order, critical frequency, type, analog or digital
         voltage_trace = scignal.filtfilt(b, a, voltage_trace)
 
+
+
         if rec_type == 'extracell':
 
             # determine threshold
@@ -219,6 +222,54 @@ class preproc:
             print('Number of spikes: ', len(spiketimes))
 
         rec_len = len(voltage_trace)
+
+        start = int(input('Plot voltage trace from (in s): '))
+        end = int(input('to (in s): '))
+
+        fig_v = plots.spiketimes(voltage_trace, spiketimes, start, end, fs = fs)
+
+        display(fig_v)
+
+        adjust = bool(input('Adjust threshold? (Yes: 1, No: 0): '))
+
+        if adjust:
+            if rec_type == 'extracell':
+                while adjust:
+                    pol = bool(input('y-axis switch? (Yes: 1, No: 0): '))
+                    alpha = int(input('Scale factor for threshold: '))
+
+                    # determine threshold
+
+                    thr = alpha * sigma
+
+                    if pol:
+                        print('Threshold is', thr, 'mV')
+                        # threshold signal
+                        tmp = np.array(voltage_trace)
+                        thr_boolean = [tmp < thr]
+                        tmp[thr_boolean] = 0
+
+                        # detect spiketimes as threshold crossings
+                        tmp[tmp != 0] = 1
+                    else:
+                        print('Threshold is -', thr, 'mV')
+                        # threshold signal
+                        tmp = np.array(voltage_trace)
+                        thr_boolean = [tmp > -thr]
+                        tmp[thr_boolean] = 0
+
+                    tmp = tmp.astype(int)
+                    tmp2 = np.append(tmp[1:len(tmp)], np.array([0], int))
+                    dif = tmp2 - tmp
+
+                    spiketimes = np.where(dif == -1)[0]
+                    print('Number of spikes: ', len(spiketimes))
+
+                    fig_v = plots.spiketimes(voltage_trace, spiketimes, start, end, fs=fs)
+
+                    display(fig_v)
+
+                    adjust = bool(input('Adjust threshold? (Yes: 1, No: 0): '))
 
         return voltage_trace, rec_len, spiketimes
 
