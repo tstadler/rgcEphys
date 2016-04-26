@@ -236,7 +236,7 @@ class preproc:
             if rec_type == 'extracell':
                 adjust1 = True
                 while adjust1:
-                    pol = bool(input('y-axis switch? (Yes: 1, No: 0): '))
+                    pol = bool(int(input('y-axis switch? (Yes: 1, No: 0): ')))
                     alpha = int(input('Scale factor for threshold: '))
 
                     # determine threshold
