@@ -234,7 +234,42 @@ class preproc:
 
         if adjust0:
             if rec_type == 'extracell':
-                adjust1 = True
+
+                pol = bool(input('y-axis switch? (Yes: 1, No: 0): '))
+                alpha = int(input('Scale factor for threshold: '))
+
+                # determine threshold
+
+                thr = alpha * sigma
+
+                if pol:
+                    print('Threshold is', thr, 'mV')
+                    # threshold signal
+                    tmp = np.array(voltage_trace)
+                    thr_boolean = [tmp < thr]
+                    tmp[thr_boolean] = 0
+
+                    # detect spiketimes as threshold crossings
+                    tmp[tmp != 0] = 1
+                else:
+                    print('Threshold is -', thr, 'mV')
+                    # threshold signal
+                    tmp = np.array(voltage_trace)
+                    thr_boolean = [tmp > -thr]
+                    tmp[thr_boolean] = 0
+
+                tmp = tmp.astype(int)
+                tmp2 = np.append(tmp[1:len(tmp)], np.array([0], int))
+                dif = tmp2 - tmp
+
+                spiketimes = np.where(dif == -1)[0]
+                print('Number of spikes: ', len(spiketimes))
+
+                fig_v = plots.spiketimes(voltage_trace, spiketimes, start, end, fs=fs)
+
+                display(fig_v)
+
+                adjust1 = bool(input('Adjust threshold again? (Yes: 1, No: 0): '))
 
                 while adjust1:
                     pol = bool(input('y-axis switch? (Yes: 1, No: 0): '))
