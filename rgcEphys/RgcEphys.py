@@ -230,11 +230,13 @@ class preproc:
 
         display(fig_v)
 
-        adjust = bool(input('Adjust threshold? (Yes: 1, No: 0): '))
+        adjust0 = bool(input('Adjust threshold? (Yes: 1, No: 0): '))
 
-        if adjust:
+        if adjust0:
             if rec_type == 'extracell':
-                while adjust:
+                adjust1 = True
+
+                while adjust1:
                     pol = bool(input('y-axis switch? (Yes: 1, No: 0): '))
                     alpha = int(input('Scale factor for threshold: '))
 
@@ -269,7 +271,7 @@ class preproc:
 
                     display(fig_v)
 
-                    adjust = bool(input('Adjust threshold? (Yes: 1, No: 0): '))
+                    adjust1 = bool(input('Adjust threshold again? (Yes: 1, No: 0): '))
 
         return voltage_trace, rec_len, spiketimes
 
