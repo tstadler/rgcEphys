@@ -259,6 +259,8 @@ class preproc:
                         thr_boolean = [tmp > -thr]
                         tmp[thr_boolean] = 0
 
+                        tmp[tmp != 0] = 1
+
                     tmp = tmp.astype(int)
                     tmp2 = np.append(tmp[1:len(tmp)], np.array([0], int))
                     dif = tmp2 - tmp
