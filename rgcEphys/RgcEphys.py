@@ -231,7 +231,7 @@ class preproc:
         display(fig_v)
 
         adjust0 = bool(int(input('Adjust threshold? (Yes: 1, No: 0): ')))
-
+        plt.close(fig_v)
         if adjust0:
             if rec_type == 'extracell':
                 adjust1 = True
@@ -271,6 +271,7 @@ class preproc:
                     display(fig_v)
 
                     adjust1 = bool(int(input('Adjust threshold again? (Yes: 1, No: 0): ')))
+                    plt.close(fig_v)
 
         return voltage_trace, rec_len, spiketimes
 
