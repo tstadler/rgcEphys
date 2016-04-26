@@ -34,7 +34,7 @@ class lnp_fit:
 
         plt.rcParams.update({'figure.figsize': (10, 8), 'axes.titlesize': 20})
 
-        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
+        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(RgcEphys,filename, rec_type, ch_voltage)
 
         (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
 
