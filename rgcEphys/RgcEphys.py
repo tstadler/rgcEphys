@@ -356,8 +356,8 @@ class stimuli:
         lines = open(mseq + '.txt').read().split('\n')
 
         params = lines[0].split(',')
-        stimDim.append(int(params[1]))
         stimDim.append(int(params[0]))
+        stimDim.append(int(params[1]))
         stimDim.append(int(params[2]))
 
         nB = stimDim[0] * stimDim[1]
