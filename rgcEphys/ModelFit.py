@@ -100,7 +100,7 @@ class lnp_fit:
 
             fig_sta_inst = plt.subplots()
 
-            im = plt.imshow(sta_inst.reshape(stimDim[0], stimDim[1]), cmap=plt.cm.coolwarm, interpolation='none')
+            im = plt.imshow(sta_inst.reshape(stimDim[0], stimDim[1]), cmap=plt.cm.coolwarm_r, interpolation='none')
             cbi = plt.colorbar(im)
 
             tick_locator = ticker.MaxNLocator(nbins=6)
@@ -220,6 +220,7 @@ class lnp_fit:
         LNP_dict['R2'] = []
         LNP_dict['pred psth'] = []
         LNP_dict['true psth'] = []
+        LNP_dict['pred rate'] = []
 
         for train, test in kf:
             res = scoptimize.minimize(self.nLL, w0, args=(s[:, train], y[train]), jac=True, method='TNC')
@@ -230,16 +231,18 @@ class lnp_fit:
             LNP_dict['w'].append(res.x)
 
             y_test = np.zeros(len(test))
+            r = []
             for t in range(len(test)):
-                r = np.exp(np.dot(res.x, s[:, test[t]]))
-                y_test[t] = np.random.poisson(lam=r)
+                r.append(np.exp(np.dot(res.x, s[:, test[t]])))
+                y_test[t] = np.random.poisson(lam=r[t])
 
             LNP_dict['pred correct'].append((sum(y_test == y[test]) / len(test)))
-            LNP_dict['pearson r'].append(scstats.pearsonr(y_test, y[test])[0])
             LNP_dict['R2'].append(
                 1 - np.sum(np.square(y[test] - y_test)) / np.sum(np.square(y[test] - np.mean(y[test]))))
             LNP_dict['pred psth'].append(y_test * freq)
             LNP_dict['true psth'].append(y[test] * freq)
+            LNP_dict['rate'].apppend(np.array(r))
+            LNP_dict['pearson r'].append(scstats.pearsonr(y[test]*freq,r)[0])
 
         LNP_df = pd.DataFrame(LNP_dict)
 
@@ -529,7 +532,7 @@ class plots:
         ax = axarr.reshape(lnp_df.shape[0])
 
         for ix, row in lnp_df.iterrows():
-            im = ax[ix].imshow(row['w'].reshape(stimDim[0], stimDim[1]), interpolation='none', cmap=plt.cm.coolwarm)
+            im = ax[ix].imshow(row['w'].reshape(stimDim[0], stimDim[1]), interpolation='none', cmap=plt.cm.coolwarm_r)
             ax[ix].set_title('nLL: ' + str("%.2f" % round(row['nLL test'], 2)))
             ax[ix].set_xticklabels([])
             ax[ix].set_yticklabels([])

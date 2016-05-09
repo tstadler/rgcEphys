@@ -178,6 +178,7 @@ class preproc:
         if rec_type == 'extracell':
 
             # determine threshold
+
             sigma = np.median(np.abs(voltage_trace) / .6745)
             thr = 5 * sigma
             print('Threshold is -', thr, 'mV')
@@ -355,8 +356,8 @@ class stimuli:
         lines = open(mseq + '.txt').read().split('\n')
 
         params = lines[0].split(',')
-        stimDim.append(int(params[0]))
         stimDim.append(int(params[1]))
+        stimDim.append(int(params[0]))
         stimDim.append(int(params[2]))
 
         nB = stimDim[0] * stimDim[1]
@@ -579,11 +580,11 @@ class plots:
         :param fs scalar sampling rate in Hz
         """
 
-        x = np.linspace(start, end, (end - start) * fs)
-
         plt.rcParams.update(
             {'figure.figsize': (15, 6), 'axes.titlesize': 20, 'axes.labelsize': 18, 'xtick.labelsize': 16,
              'ytick.labelsize': 16})
+
+        x = np.linspace(start, end, (end - start) * fs)
 
         fig, ax = plt.subplots()
 
@@ -673,7 +674,7 @@ class plots:
         from matplotlib import ticker
 
         plt.rcParams.update({
-            'figure.figsize': (10, 8), 'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16,
+            'figure.figsize': (10, 8), 'figure.subplot.hspace': .2, 'figure.subplot.wspace': .2, 'axes.titlesize': 16,
             'axes.labelsize': 18,
             'xtick.labelsize': 16, 'ytick.labelsize': 16, 'lines.linewidth': 4})
 
@@ -711,6 +712,7 @@ class plots:
         """
         from matplotlib import ticker
         import matplotlib
+
 
         my_cmap = plt.cm.get_cmap('coolwarm')
         norm = matplotlib.colors.Normalize(min(kernel), max(kernel))
