@@ -10,6 +10,7 @@ from itertools import chain
 import os
 import pandas as pd
 import re
+import tifffile as tf
 from IPython.display import display
 
 class parse:
@@ -111,6 +112,39 @@ class parse:
         rec.write(path_h5+filename_new)
 
         print('hdf5 was written as '+filename_new+' at '+path_h5)
+
+    def import_stack(self,data_folder, exp_date, eye, cell_id, write_path):
+
+        # read from .tif
+
+        full_path = data_folder + exp_date + '/' + eye + '/' + str(cell_id) + '/linestack.tif'
+
+        stack = tf.imread(full_path)
+
+        # smooth with a gaussian filter
+
+        stack_smooth = scimage.filters.gaussian_filter(stack, [.2, .9, .9])
+
+        # average along z-axis to get flattened top view
+
+        morph = np.mean(stack_smooth, 0)
+
+        # display morph
+
+        plt.rcParams.update({'figure.figsize': (10, 8)})
+        fig = plt.figure()
+        fig.suptitle(full_path)
+        clim = (np.min(morph), np.max(morph) * .2)
+        plt.imshow(morph, clim=clim)
+        display(fig)
+        plt.close(fig)
+
+        # save array to file
+        sv_path = write_path + exp_date + '/' + eye + '/' + str(cell_id) + '/morph'
+
+        np.save(sv_path, morph)
+
+        return morph
 
 class preproc:
 
