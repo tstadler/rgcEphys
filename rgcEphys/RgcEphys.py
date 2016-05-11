@@ -113,43 +113,7 @@ class parse:
 
         print('hdf5 was written as '+filename_new+' at '+path_h5)
 
-    def import_stack(self,data_folder, exp_date, eye, cell_id, write_path):
 
-        # read from .tif
-
-        full_path = data_folder + exp_date + '/' + eye + '/' + str(cell_id) + '/linestack.tif'
-
-        stack = tf.imread(full_path)
-
-        # smooth with a gaussian filter
-
-        stack_smooth = scimage.filters.gaussian_filter(stack, [.2, .9, .9])
-
-        # average along z-axis to get flattened top view
-
-        morph = np.mean(stack_smooth, 0)
-        morph = morph[::-1]
-
-        # display morph
-
-        plt.rcParams.update({
-            'figure.figsize': (10, 8),
-            'axes.titlesize':20
-        })
-
-        fig = plt.figure()
-        fig.suptitle(full_path)
-        clim = (np.min(morph), np.max(morph) * .2)
-        plt.imshow(morph, clim=clim)
-        display(fig)
-        plt.close(fig)
-
-        # save array to file
-        sv_path = write_path + exp_date + '/' + eye + '/' + str(cell_id) + '/morph'
-
-        np.save(sv_path, morph)
-
-        return morph
 
 class preproc:
 
@@ -610,42 +574,28 @@ class morph:
     contains functions for analysing the morphologies of cells filled and reconstructed offline
     """
 
-    def overlay(self, data_folder, exp_date, eye, cell_id, write_path, filename, rec_type, ch_voltage, ch_trigger, mseq,
-                zoom):
+    def overlay(self, data_folder, exp_date, eye, cell_id, write_path, zoom, rf, pixel_size):
+        """
 
-        morph = self.parse.import_stack(self, data_folder, exp_date, eye, cell_id, write_path)
+        :param data_folder: str containing '/abs/path/to/data/
+        :param exp_date: str with 'yyyy-mm-dd'
+        :param eye: str enum('L','R')
+        :param cell_id: int cell_id
+        :param write_path: str containg '/abs/path/to/datawrite/
+        :param zoom: double zoom factor used for recording morph
+        :param rf: array (stimDim[0] x stimDim[1]) with the spike-triggered average or some other filter that should be overlayed with morph
+        :param pixel_size: tuple (dy, dx) noise pixel side length in um
+        :returns:
+            :return rf_center array
+            :return rf_up array
+            :return morph array
+            :return morph_pad array
+        """
 
-        fname = write_path + exp_date + '/' + eye + '/' + str(cell_id) + '/C' + str(cell_id) + '_' + filename + '.h5'
+        morph = self.morph.import_stack(self, data_folder, exp_date, eye, cell_id, write_path)
 
-        (voltage_trace, rec_len, spiketimes) = self.stimuli.preproc.spike_detect(self, fname, rec_type, ch_voltage)
-        (trigger_trace, triggertimes) = self.stimuli.preproc.trigger_detect(fname, ch_trigger)
-
-        ste, stimDim = self.stimuli.ste(spiketimes, triggertimes, rec_len, mseq, freq=5, deltat=1000, fs=10000)
-        sta, kernel, u, s, v = self.stimuli.sta(ste, stimDim)
-
-        fig_rf_deltas = self.plots.rf_deltas(sta)
-        display(fig_rf_deltas)
-        plt.close(fig_rf_deltas)
-
-        # fig_rf_svd = self.plots.rf_svd(sta,kernel,u[:,0],v[0,:])
-        # display(fig_rf_svd)
-        # plt.close(fig_rf_svd)
-
-        tau = int(input('Select best time lag for RF mapping: '))
-        frame = int(10 - tau / 10)
-
-        rf = sta[frame, :, :]
-
-        if '40' in filename:
-            dx = 40  # pixel side length in um
-            dy = 40
-        elif '20' in filename:
-            dx = 20
-            dy = 20
-        else:
-            dx = 40
-            dy = 40
-
+        dx = pixel_size[1]
+        dy = pixel_size[0]
         morph_size = zoom / .64 * 110  # side length of stack image in um
         scan_x = morph.shape[1]
         scan_y = morph.shape[0]
@@ -676,20 +626,58 @@ class morph:
         dx_morph = morph_size / scan_x  # morph pixel side length in um
         dy_morph = morph_size / scan_y  # morph pixel side length in um
 
-        dely = (stimDim[0] * dy - morph_size) / 2  # missing at each side of stack to fill stimulus in um
-        delx = (stimDim[1] * dx - morph_size) / 2
+        dely = (rf.shape[0] * dy - morph_size) / 2  # missing at each side of stack to fill stimulus in um
+        delx = (rf.shape[1] * dx - morph_size) / 2
 
         ny_pad = int(dely / dy_morph)  # number of pixels needed to fill the gap
         nx_pad = int(delx / dx_morph)
 
         morph_pad = np.lib.pad(morph, ((ny_pad, ny_pad), (nx_pad, nx_pad)), 'constant', constant_values=0)
 
-        factor = (morph_pad.shape[0] / stimDim[0], morph_pad.shape[1] / stimDim[1])
+        factor = (morph_pad.shape[0] / rf.shape[0], morph_pad.shape[1] / rf.shape[1])
         # print('resampled by a factor of:' , factor, 'with nearest neighbour interpolation')
 
         rf_up = scimage.zoom(rf, factor, order=0)
 
         return rf_center, rf_up, morph, morph_pad
+
+    def import_stack(self, data_folder, exp_date, eye, cell_id, write_path):
+
+        # read from .tif
+
+        full_path = data_folder + exp_date + '/' + eye + '/' + str(cell_id) + '/linestack.tif'
+
+        stack = tf.imread(full_path)
+
+        # smooth with a gaussian filter
+
+        stack_smooth = scimage.filters.gaussian_filter(stack, [.2, .9, .9])
+
+        # average along z-axis to get flattened top view
+
+        morph = np.mean(stack_smooth, 0)
+        morph = morph[::-1]
+
+        # display morph
+
+        plt.rcParams.update({
+            'figure.figsize': (10, 8),
+            'axes.titlesize': 20
+        })
+
+        fig = plt.figure()
+        fig.suptitle(full_path)
+        clim = (np.min(morph), np.max(morph) * .2)
+        plt.imshow(morph, clim=clim)
+        display(fig)
+        plt.close(fig)
+
+        # save array to file
+        sv_path = write_path + exp_date + '/' + eye + '/' + str(cell_id) + '/morph'
+
+        np.save(sv_path, morph)
+
+        return morph
 
 class plots:
 
