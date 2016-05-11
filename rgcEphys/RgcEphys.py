@@ -128,6 +128,7 @@ class parse:
         # average along z-axis to get flattened top view
 
         morph = np.mean(stack_smooth, 0)
+        morph = morph[::-1]
 
         # display morph
 
