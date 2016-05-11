@@ -132,7 +132,11 @@ class parse:
 
         # display morph
 
-        plt.rcParams.update({'figure.figsize': (10, 8)})
+        plt.rcParams.update({
+            'figure.figsize': (10, 8),
+            'axes.titlesize':20
+        })
+
         fig = plt.figure()
         fig.suptitle(full_path)
         clim = (np.min(morph), np.max(morph) * .2)
@@ -599,6 +603,93 @@ class stimuli:
         dsi = (r_p - r_n) / (r_p + r_n)
 
         return (spiketimes_trial, spiketimes_normed, hist, hist_sorted, dsi, deg)
+
+class morph:
+
+    """
+    contains functions for analysing the morphologies of cells filled and reconstructed offline
+    """
+
+    def overlay(self, data_folder, exp_date, eye, cell_id, write_path, filename, rec_type, ch_voltage, ch_trigger, mseq,
+                zoom):
+
+        morph = self.parse.import_stack(self, data_folder, exp_date, eye, cell_id, write_path)
+
+        fname = write_path + exp_date + '/' + eye + '/' + str(cell_id) + '/C' + str(cell_id) + '_' + filename + '.h5'
+
+        (voltage_trace, rec_len, spiketimes) = self.stimuli.preproc.spike_detect(self, fname, rec_type, ch_voltage)
+        (trigger_trace, triggertimes) = self.stimuli.preproc.trigger_detect(fname, ch_trigger)
+
+        ste, stimDim = self.stimuli.ste(spiketimes, triggertimes, rec_len, mseq, freq=5, deltat=1000, fs=10000)
+        sta, kernel, u, s, v = self.stimuli.sta(ste, stimDim)
+
+        fig_rf_deltas = self.plots.rf_deltas(sta)
+        display(fig_rf_deltas)
+        plt.close(fig_rf_deltas)
+
+        # fig_rf_svd = self.plots.rf_svd(sta,kernel,u[:,0],v[0,:])
+        # display(fig_rf_svd)
+        # plt.close(fig_rf_svd)
+
+        tau = int(input('Select best time lag for RF mapping: '))
+        frame = int(10 - tau / 10)
+
+        rf = sta[frame, :, :]
+
+        if '40' in filename:
+            dx = 40  # pixel side length in um
+            dy = 40
+        elif '20' in filename:
+            dx = 20
+            dy = 20
+        else:
+            dx = 40
+            dy = 40
+
+        morph_size = zoom / .64 * 110  # side length of stack image in um
+        scan_x = morph.shape[1]
+        scan_y = morph.shape[0]
+
+        print('morph side length: ', morph_size)
+        print('with scanning mode: ', scan_x, 'x', scan_y)
+
+        factor = (np.ceil(morph_size / dy), np.ceil(morph_size / dx))
+        rf_even = scimage.zoom(rf, factor, order=0)
+
+        center0 = rf_even.shape[0] / 2
+        center1 = rf_even.shape[1] / 2
+
+        nx = int(np.ceil(morph_size / dx)) * factor[1]  # number of pixels in x dimension covered by morph
+        ny = int(np.ceil(morph_size / dy)) * factor[0]  # number of pixels in y dimensions covered by morph
+
+        # cut out the region of noise covered by morph
+
+        rf_center = rf_even[center0 - ny / 2:center0 + ny / 2, center1 - nx / 2:center1 + nx / 2]
+
+        factor = (scan_y / rf_center.shape[0], scan_x / rf_center.shape[1])
+        # print('upsample rf by a factor of:' , factor, 'with nearest neighbour interpolation')
+
+        rf_center = scimage.zoom(rf_center, factor, order=0)
+
+        # padding
+
+        dx_morph = morph_size / scan_x  # morph pixel side length in um
+        dy_morph = morph_size / scan_y  # morph pixel side length in um
+
+        dely = (stimDim[0] * dy - morph_size) / 2  # missing at each side of stack to fill stimulus in um
+        delx = (stimDim[1] * dx - morph_size) / 2
+
+        ny_pad = int(dely / dy_morph)  # number of pixels needed to fill the gap
+        nx_pad = int(delx / dx_morph)
+
+        morph_pad = np.lib.pad(morph, ((ny_pad, ny_pad), (nx_pad, nx_pad)), 'constant', constant_values=0)
+
+        factor = (morph_pad.shape[0] / stimDim[0], morph_pad.shape[1] / stimDim[1])
+        # print('resampled by a factor of:' , factor, 'with nearest neighbour interpolation')
+
+        rf_up = scimage.zoom(rf, factor, order=0)
+
+        return rf_center, rf_up, morph, morph_pad
 
 class plots:
 
@@ -1121,6 +1212,47 @@ class plots:
 
         return fig1, fig2
 
+    def overlay_center(morph, rf_center):
+
+        plt.rcParams.update({
+            'figure.figsize': (15, 8),
+            'figure.subplot.hspace': .2,
+            'figure.subplot.wspace': .2,
+            'axes.titlesize': 20,
+            'axes.labelsize': 18
+        })
+
+        line_stack = np.ma.masked_where(morph == 0, morph)
+
+        clim = (np.min(morph), np.max(morph) * .2)
+        fig, ax = plt.subplots()
+
+        ax.imshow(rf_center, cmap=plt.cm.coolwarm)
+        ax.imshow(line_stack, cmap=plt.cm.gray)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+
+        return fig
+
+    def overlay_rf(morph_pad,rf_up):
+
+        plt.rcParams.update({
+                'figure.figsize':(15,8),
+                'figure.subplot.hspace':.2,
+                'figure.subplot.wspace':.2,
+                'axes.titlesize': 20,
+                'axes.labelsize': 18
+            })
+
+        line_pad = np.ma.masked_where( morph_pad == 0, morph_pad)
+
+        clim = (np.min(morph_pad), np.max(morph_pad)*.2)
+
+        fig,ax = plt.subplots()
+        ax.imshow(rf_up,cmap = plt.cm.coolwarm)
+        ax.imshow(line_pad,cmap = plt.cm.gray, clim = clim)
+
+        return fig
 
 
 
