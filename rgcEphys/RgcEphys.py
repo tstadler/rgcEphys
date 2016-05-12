@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import re
 import tifffile as tf
+from configparser import ConfigParser
 from IPython.display import display
 
 class parse:
@@ -112,6 +113,34 @@ class parse:
         rec.write(path_h5+filename_new)
 
         print('hdf5 was written as '+filename_new+' at '+path_h5)
+
+    def meta_data(ini):
+
+        info = {}
+
+        config = ConfigParser()
+        config.read(ini)
+
+        info['zoom'] = config.getfloat('morph', 'zoom')
+
+        info['rec_type'] = config.get('ephys', 'rec_type')
+        info['ch_voltage'] = config.get('ephys', 'ch_voltage')
+        info['ch_trigger'] = config.get('ephys', 'ch_trigger')
+
+        info['fname_noise'] = config.get('noise', 'filename')
+        info['mseq'] = config.get('noise', 'm_seq')
+
+        if '20Hz' in info['fname_noise']:
+            info['freq'] = int(20)
+        else:
+            info['freq'] = int(5)
+
+        if '20um' in info['fname_noise']:
+            info['pixel_size'] = int(20)
+        else:
+            info['pixel_size'] = int(40)
+
+        return info
 
 
 
