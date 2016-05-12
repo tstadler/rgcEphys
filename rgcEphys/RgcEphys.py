@@ -625,7 +625,7 @@ class morph:
 
         dx = pixel_size
         dy = pixel_size
-        morph_size = zoom / .64 * 110  # side length of stack image in um
+        morph_size =  .64/zoom * 110  # side length of stack image in um
         scan_x = morph.shape[1]
         scan_y = morph.shape[0]
 
