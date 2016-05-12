@@ -623,8 +623,8 @@ class morph:
 
         morph = self.morph.import_stack(self, data_folder, exp_date, eye, cell_id, write_path)
 
-        dx = pixel_size[1]
-        dy = pixel_size[0]
+        dx = pixel_size
+        dy = pixel_size
         morph_size = zoom / .64 * 110  # side length of stack image in um
         scan_x = morph.shape[1]
         scan_y = morph.shape[0]
