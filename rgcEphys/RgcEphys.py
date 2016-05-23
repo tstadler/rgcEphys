@@ -725,19 +725,19 @@ class morph:
 
         # Fit 2d Gauss to find soma in morph and rf center
 
-        params_m_pad = self.helper.moments(self,morph_pad)
-        init_m_pad = self.helper.gaussian(self,*params_m_pad)
+        params_m_pad = self.helper.moments(morph_pad)
+        init_m_pad = self.helper.gaussian(*params_m_pad)
 
         params_lsq_m_pad = self.helper.fitgaussian(self,morph_pad)
-        fit_m_pad = self.helper.gaussian(self,*params_lsq_m_pad)
+        fit_m_pad = self.helper.gaussian(*params_lsq_m_pad)
 
         (mu_y_m_pad, mu_x_m_pad, sd_y_m_pad, sd_x_m_pad) = params_m_pad
 
-        params_rf_pad = self.helper.moments(self, np.abs(rf_up))
-        init_rf_pad = self.helper.gaussian(self, *params_rf_pad)
+        params_rf_pad = self.helper.moments(np.abs(rf_up))
+        init_rf_pad = self.helper.gaussian(*params_rf_pad)
 
         params_lsq_rf_pad = self.helper.fitgaussian(self,np.abs(rf_up))
-        fit_rf_pad = self.helper.gaussian(self,*params_lsq_rf_pad)
+        fit_rf_pad = self.helper.gaussian(*params_lsq_rf_pad)
 
         (mu_y_rf_pad, mu_x_rf_pad, sd_y_rf_pad, sd_x_rf_pad) = params_lsq_rf_pad
 
@@ -1330,14 +1330,14 @@ class plots:
 
 class helper:
 
-    def gaussian(self,mu_x, mu_y, sd_x, sd_y):
+    def gaussian(mu_x, mu_y, sd_x, sd_y):
         """Returns a gaussian function with the given parameters"""
         sd_x = float(sd_x)
         sd_y = float(sd_y)
         a = 1 / (2 * np.pi * sd_x * sd_y)
         return lambda x, y: a * np.exp(-((x - mu_x) ** 2 / (sd_x ** 2) + (y - mu_y) ** 2 / (sd_y ** 2)) / 2)
 
-    def moments(self,data):
+    def moments(data):
         """Returns (mu_x, mu_y, sd_x, sd_y)
         the gaussian parameters of a 2D distribution by calculating its
         moments """
@@ -1354,7 +1354,7 @@ class helper:
     def fitgaussian(self,data):
         """Returns (mu_x, mu_y, sd_x, sd_y)
         the gaussian parameters of a 2D distribution found by a fit"""
-        params = self.helper.moments(self,data)
+        params = self.helper.moments(data)
         errorfunction = lambda p: np.ravel(self.helper.gaussian(*p)(*np.indices(data.shape)) -
                                            data)
         p, success = scoptimize.leastsq(errorfunction, params)
