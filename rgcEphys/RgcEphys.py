@@ -760,7 +760,7 @@ class morph:
         nx_pad = int(delx / dx_morph)
 
         morph_pad_shift = np.lib.pad(morph, (
-        (ny_pad + int(shift_y), ny_pad + int(shift_y)), (nx_pad + int(shift_x), nx_pad + int(shift_x))), 'constant',
+        (ny_pad + int(shift_y), ny_pad - int(shift_y)), (nx_pad + int(shift_x), nx_pad - int(shift_x))), 'constant',
                                      constant_values=0)
 
         return morph_pad_shift, params_lsq_m_pad, params_lsq_rf_pad
@@ -1325,6 +1325,9 @@ class plots:
         fig,ax = plt.subplots()
         ax.imshow(rf_up,cmap = plt.cm.coolwarm)
         ax.imshow(line_pad,cmap = plt.cm.gray, clim = clim)
+
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
 
         return fig
 
