@@ -1309,6 +1309,14 @@ class plots:
 
     def overlay_gauss(self, morph_pad, rf_up, params_m, params_rf):
 
+        plt.rcParams.update({
+            'figure.figsize': (15, 8),
+            'figure.subplot.hspace': .2,
+            'figure.subplot.wspace': .2,
+            'axes.titlesize': 20,
+            'axes.labelsize': 18
+        })
+
         fig, ax = plt.subplots()
         clim = (np.min(morph_pad), np.max(morph_pad) * .2)
 
@@ -1319,8 +1327,8 @@ class plots:
 
         ax.imshow(rf_up, cmap=plt.cm.coolwarm)
         ax.imshow(line_pad_shift, cmap=plt.cm.gray, clim=clim)
-        ax.contour(fit_m_pad(*np.indices(morph_pad.shape)), cmap=plt.cm.Greens)
-        ax.contour(fit_rf_pad(*np.indices(rf_up.shape)), cmap=plt.cm.Purples)
+        ax.contour(fit_m_pad(*np.indices(morph_pad.shape)), cmap=plt.cm.Greens, linewidth=1)
+        ax.contour(fit_rf_pad(*np.indices(rf_up.shape)), cmap=plt.cm.Purples, linewidth = 1)
 
         ax.set_yticklabels([])
         ax.set_xticklabels([])
