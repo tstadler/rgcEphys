@@ -1354,7 +1354,7 @@ class helper:
     def fitgaussian(self,data):
         """Returns (mu_x, mu_y, sd_x, sd_y)
         the gaussian parameters of a 2D distribution found by a fit"""
-        params = self.helper.moments(data)
+        params = self.helper.moments(self,data)
         errorfunction = lambda p: np.ravel(self.helper.gaussian(*p)(*np.indices(data.shape)) -
                                            data)
         p, success = scoptimize.leastsq(errorfunction, params)
