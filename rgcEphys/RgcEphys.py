@@ -725,19 +725,19 @@ class morph:
 
         # Fit 2d Gauss to find soma in morph and rf center
 
-        params_m_pad = self.helper.moments(morph_pad)
-        init_m_pad = self.helper.gaussian(*params_m_pad)
+        params_m_pad = self.helper.moments(self,morph_pad)
+        init_m_pad = self.helper.gaussian(self,*params_m_pad)
 
-        params_lsq_m_pad = self.helper.fitgaussian(morph_pad)
-        fit_m_pad = self.helper.gaussian(*params_lsq_m_pad)
+        params_lsq_m_pad = self.helper.fitgaussian(self,morph_pad)
+        fit_m_pad = self.helper.gaussian(self,*params_lsq_m_pad)
 
         (mu_y_m_pad, mu_x_m_pad, sd_y_m_pad, sd_x_m_pad) = params_m_pad
 
-        params_rf_pad = self.helper.moments(np.abs(rf_up))
-        init_rf_pad = self.helper.gaussian(*params_rf_pad)
+        params_rf_pad = self.helper.moments(self, np.abs(rf_up))
+        init_rf_pad = self.helper.gaussian(self, *params_rf_pad)
 
-        params_lsq_rf_pad = self.helper.fitgaussian(np.abs(rf_up))
-        fit_rf_pad = self.helper.gaussian(*params_lsq_rf_pad)
+        params_lsq_rf_pad = self.helper.fitgaussian(self,np.abs(rf_up))
+        fit_rf_pad = self.helper.gaussian(self,*params_lsq_rf_pad)
 
         (mu_y_rf_pad, mu_x_rf_pad, sd_y_rf_pad, sd_x_rf_pad) = params_lsq_rf_pad
 
