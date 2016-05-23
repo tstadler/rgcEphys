@@ -710,27 +710,13 @@ class morph:
         return morph
 
     def shift(self,morph, morph_pad, rf, rf_up, pixel_size, zoom):
+
         # Fit 2d Gauss to find soma in morph and rf center
 
-        print('fit gauss to morph:')
-        params_m_pad = self.helper.moments(morph_pad)
-        init_m_pad = self.helper.gaussian(*params_m_pad)
+        params_m = self.helper.fitgaussian(self,morph_pad)
+        params_rf = self.helper.fitgaussian(self,np.abs(rf_up))
 
-        params_lsq_m_pad = self.helper.fitgaussian(self,morph_pad)
-        fit_m_pad = self.helper.gaussian(*params_lsq_m_pad)
-
-        (height_m_pad, mu_y_m_pad, mu_x_m_pad, sd_y_m_pad, sd_x_m_pad) = params_m_pad
-
-        print('fit gauss to rf:')
-        params_rf_pad = self.helper.moments(np.abs(rf_up))
-        init_rf_pad = self.helper.gaussian(*params_rf_pad)
-
-        params_lsq_rf_pad = self.helper.fitgaussian(self,np.abs(rf_up))
-        fit_rf_pad = self.helper.gaussian(*params_lsq_rf_pad)
-
-        (height_rf_pad, mu_y_rf_pad, mu_x_rf_pad, sd_y_rf_pad, sd_x_rf_pad) = params_lsq_rf_pad
-
-        (shift_y, shift_x) = (params_lsq_rf_pad - params_lsq_m_pad)[1:3]
+        (shift_y, shift_x) = (params_rf - params_m)[1:3]
 
         dx = pixel_size
         dy = pixel_size
@@ -748,11 +734,12 @@ class morph:
         ny_pad = int(dely / dy_morph)  # number of pixels needed to fill the gap
         nx_pad = int(delx / dx_morph)
 
-        morph_pad_shift = np.lib.pad(morph, (
+        morph_shift = np.lib.pad(morph, (
         (ny_pad + int(shift_y), ny_pad - int(shift_y)), (nx_pad + int(shift_x), nx_pad - int(shift_x))), 'constant',
                                      constant_values=0)
+        params_m_shift = self.helper.fitgaussian(self, morph_shift)
 
-        return morph_pad_shift, params_lsq_m_pad, params_lsq_rf_pad
+        return morph_shift, params_m, params_m_shift, params_rf
 
 class plots:
 
