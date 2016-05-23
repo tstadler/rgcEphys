@@ -121,6 +121,11 @@ class parse:
 
         config = ConfigParser()
         config.read(ini)
+        info['zk'] = config.get('animal', 'zk')
+        info['sex'] = config.get('animal', 'sex')
+        info['birth'] = config.get('animal', 'birth')
+
+        info['experimneter'] = config.get('experiment', 'experimenter')
 
         info['zoom'] = config.getfloat('morph', 'zoom')
 
