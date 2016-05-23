@@ -709,39 +709,28 @@ class morph:
 
         return morph
 
-    def shift(self, morph, morph_pad, rf, rf_up, pixel_size, zoom):
-
-        """
-
-        :param morph: array (scan_y x scan_x) with the linestack morph of the cell
-        :param morph_pad: array as returned by overlay
-        :param rf: array (stimDim[0] x stimDim[1]) with the spatial filter fo the cell
-        :param rf_up: array as returned by overlay
-        :param pixel_size: scalar pixel size of the rf map in um
-        :param zoom: scalar zoom factor with which morph was recorded
-        :returns:
-            :return
-        """
-
+    def shift(self,morph, morph_pad, rf, rf_up, pixel_size, zoom):
         # Fit 2d Gauss to find soma in morph and rf center
 
+        print('fit gauss to morph:')
         params_m_pad = self.helper.moments(morph_pad)
         init_m_pad = self.helper.gaussian(*params_m_pad)
 
         params_lsq_m_pad = self.helper.fitgaussian(self,morph_pad)
         fit_m_pad = self.helper.gaussian(*params_lsq_m_pad)
 
-        (mu_y_m_pad, mu_x_m_pad, sd_y_m_pad, sd_x_m_pad) = params_m_pad
+        (height_m_pad, mu_y_m_pad, mu_x_m_pad, sd_y_m_pad, sd_x_m_pad) = params_m_pad
 
+        print('fit gauss to rf:')
         params_rf_pad = self.helper.moments(np.abs(rf_up))
         init_rf_pad = self.helper.gaussian(*params_rf_pad)
 
         params_lsq_rf_pad = self.helper.fitgaussian(self,np.abs(rf_up))
         fit_rf_pad = self.helper.gaussian(*params_lsq_rf_pad)
 
-        (mu_y_rf_pad, mu_x_rf_pad, sd_y_rf_pad, sd_x_rf_pad) = params_lsq_rf_pad
+        (height_rf_pad, mu_y_rf_pad, mu_x_rf_pad, sd_y_rf_pad, sd_x_rf_pad) = params_lsq_rf_pad
 
-        (shift_y, shift_x) = (params_lsq_rf_pad - params_lsq_m_pad)[0:2]
+        (shift_y, shift_x) = (params_lsq_rf_pad - params_lsq_m_pad)[1:3]
 
         dx = pixel_size
         dy = pixel_size
@@ -1331,17 +1320,36 @@ class plots:
 
         return fig
 
+    def overlay_gauss(self, morph_pad, rf_up, params_m, params_rf):
+
+        fig, ax = plt.subplots()
+        clim = (np.min(morph_pad), np.max(morph_pad) * .2)
+
+        line_pad_shift = np.ma.masked_where(morph_pad == 0, morph_pad)
+
+        fit_m_pad = self.helper.gaussian(*params_m)
+        fit_rf_pad = self.helper.gaussian(*params_rf)
+
+        ax.imshow(rf_up, cmap=plt.cm.coolwarm)
+        ax.imshow(line_pad_shift, cmap=plt.cm.gray, clim=clim)
+        ax.contour(fit_m_pad(*np.indices(morph_pad.shape)), cmap=plt.cm.Greens)
+        ax.contour(fit_rf_pad(*np.indices(rf_up.shape)), cmap=plt.cm.Purples)
+
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+
+        return fig
+
 class helper:
 
-    def gaussian(mu_x, mu_y, sd_x, sd_y):
+    def gaussian(height, mu_x, mu_y, sd_x, sd_y):
         """Returns a gaussian function with the given parameters"""
         sd_x = float(sd_x)
         sd_y = float(sd_y)
-        a = 1 / (2 * np.pi * sd_x * sd_y)
-        return lambda x, y: a * np.exp(-((x - mu_x) ** 2 / (sd_x ** 2) + (y - mu_y) ** 2 / (sd_y ** 2)) / 2)
+        return lambda x, y: height * np.exp(-((x - mu_x) ** 2 / (sd_x ** 2) + (y - mu_y) ** 2 / (sd_y ** 2)) / 2)
 
     def moments(data):
-        """Returns (mu_x, mu_y, sd_x, sd_y)
+        """Returns (height,mu_x, mu_y, sd_x, sd_y)
         the gaussian parameters of a 2D distribution by calculating its
         moments """
         total = data.sum()
@@ -1352,7 +1360,8 @@ class helper:
         sd_x = np.sqrt(np.abs((np.arange(col.size) - mu_y) ** 2 * col / col.sum()).sum())
         row = data[int(mu_x), :]
         sd_y = np.sqrt(np.abs((np.arange(row.size) - mu_x) ** 2 * row / row.sum()).sum())
-        return mu_x, mu_y, sd_x, sd_y
+        height = data.max()
+        return height, mu_x, mu_y, sd_x, sd_y
 
     def fitgaussian(self,data):
         """Returns (mu_x, mu_y, sd_x, sd_y)
