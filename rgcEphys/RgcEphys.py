@@ -125,7 +125,7 @@ class parse:
         info['sex'] = config.get('animal', 'sex')
         info['birth'] = config.get('animal', 'birth')
 
-        info['experimneter'] = config.get('experiment', 'experimenter')
+        info['experimenter'] = config.get('experiment', 'experimenter')
 
         info['zoom'] = config.getfloat('morph', 'zoom')
 
