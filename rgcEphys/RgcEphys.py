@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 import scipy.signal as scignal
 import scipy.ndimage as scimage
+import scipy.optimize as scoptimize
 import matplotlib.pyplot as plt
 import seaborn as sns
 import fnmatch
@@ -708,6 +709,62 @@ class morph:
 
         return morph
 
+    def shift(self, morph, morph_pad, rf, rf_up, pixel_size, zoom):
+
+        """
+
+        :param morph: array (scan_y x scan_x) with the linestack morph of the cell
+        :param morph_pad: array as returned by overlay
+        :param rf: array (stimDim[0] x stimDim[1]) with the spatial filter fo the cell
+        :param rf_up: array as returned by overlay
+        :param pixel_size: scalar pixel size of the rf map in um
+        :param zoom: scalar zoom factor with which morph was recorded
+        :returns:
+            :return
+        """
+
+        # Fit 2d Gauss to find soma in morph and rf center
+
+        params_m_pad = self.helper.moments(morph_pad)
+        init_m_pad = self.helper.gaussian(*params_m_pad)
+
+        params_lsq_m_pad = self.helper.fitgaussian(morph_pad)
+        fit_m_pad = self.helper.gaussian(*params_lsq_m_pad)
+
+        (mu_y_m_pad, mu_x_m_pad, sd_y_m_pad, sd_x_m_pad) = params_m_pad
+
+        params_rf_pad = self.helper.moments(np.abs(rf_up))
+        init_rf_pad = self.helper.gaussian(*params_rf_pad)
+
+        params_lsq_rf_pad = self.helper.fitgaussian(np.abs(rf_up))
+        fit_rf_pad = self.helper.gaussian(*params_lsq_rf_pad)
+
+        (mu_y_rf_pad, mu_x_rf_pad, sd_y_rf_pad, sd_x_rf_pad) = params_lsq_rf_pad
+
+        (shift_y, shift_x) = (params_lsq_rf_pad - params_lsq_m_pad)[0:2]
+
+        dx = pixel_size
+        dy = pixel_size
+
+        morph_size = .64 / zoom * 110  # side length of stack image in um
+        scan_x = morph.shape[1]
+        scan_y = morph.shape[0]
+
+        dx_morph = morph_size / scan_x  # morph pixel side length in um
+        dy_morph = morph_size / scan_y  # morph pixel side length in um
+
+        dely = (rf.shape[0] * dy - morph_size) / 2  # missing at each side of stack to fill stimulus in um
+        delx = (rf.shape[1] * dx - morph_size) / 2
+
+        ny_pad = int(dely / dy_morph)  # number of pixels needed to fill the gap
+        nx_pad = int(delx / dx_morph)
+
+        morph_pad_shift = np.lib.pad(morph, (
+        (ny_pad + int(shift_y), ny_pad + int(shift_y)), (nx_pad + int(shift_x), nx_pad + int(shift_x))), 'constant',
+                                     constant_values=0)
+
+        return morph_pad_shift, params_lsq_m_pad, params_lsq_rf_pad
+
 class plots:
 
     """
@@ -1271,7 +1328,37 @@ class plots:
 
         return fig
 
+class helper:
 
+    def gaussian(self,mu_x, mu_y, sd_x, sd_y):
+        """Returns a gaussian function with the given parameters"""
+        sd_x = float(sd_x)
+        sd_y = float(sd_y)
+        a = 1 / (2 * np.pi * sd_x * sd_y)
+        return lambda x, y: a * np.exp(-((x - mu_x) ** 2 / (sd_x ** 2) + (y - mu_y) ** 2 / (sd_y ** 2)) / 2)
+
+    def moments(self,data):
+        """Returns (mu_x, mu_y, sd_x, sd_y)
+        the gaussian parameters of a 2D distribution by calculating its
+        moments """
+        total = data.sum()
+        X, Y = np.indices(data.shape)
+        mu_x = (X * data).sum() / total
+        mu_y = (Y * data).sum() / total
+        col = data[:, int(mu_y)]
+        sd_x = np.sqrt(np.abs((np.arange(col.size) - mu_y) ** 2 * col / col.sum()).sum())
+        row = data[int(mu_x), :]
+        sd_y = np.sqrt(np.abs((np.arange(row.size) - mu_x) ** 2 * row / row.sum()).sum())
+        return mu_x, mu_y, sd_x, sd_y
+
+    def fitgaussian(self,data):
+        """Returns (mu_x, mu_y, sd_x, sd_y)
+        the gaussian parameters of a 2D distribution found by a fit"""
+        params = self.helper.moments(data)
+        errorfunction = lambda p: np.ravel(self.helper.gaussian(*p)(*np.indices(data.shape)) -
+                                           data)
+        p, success = scoptimize.leastsq(errorfunction, params)
+        return p
 
 
 
