@@ -1314,7 +1314,8 @@ class plots:
             'figure.subplot.hspace': .2,
             'figure.subplot.wspace': .2,
             'axes.titlesize': 20,
-            'axes.labelsize': 18
+            'axes.labelsize': 18,
+            'lines.linewidth': 1
         })
 
         fig, ax = plt.subplots()
