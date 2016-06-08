@@ -560,9 +560,9 @@ class plots:
 
             ax[ix].plot(t, row['pred psth'],label='pred')
             ax[ix].plot(t, row['true psth'],label = 'true')
-            ax[ix].legend()
             ax[ix].set_title('$\\rho$ : ' + str("%.2f" % round(row['pearson r'], 2)))
             ax[ix].set_xlim([0, len(row['pred psth']) / freq])
+            ax[ix].legend()
 
         fig_corr.tight_layout()
         fig_corr.text(0.5, -0.05, 'time [s]', fontsize=24, ha='center')
