@@ -558,8 +558,9 @@ class plots:
             plt.locator_params(axis='y', nbins=4)
             plt.locator_params(axis='x', nbins=4)
 
-            ax[ix].plot(t, row['pred psth'])
-            ax[ix].plot(t, row['true psth'])
+            ax[ix].plot(t, row['pred psth'],label='pred')
+            ax[ix].plot(t, row['true psth'],label = 'true')
+            ax[ix].legend()
             ax[ix].set_title('$\\rho$ : ' + str("%.2f" % round(row['pearson r'], 2)))
             ax[ix].set_xlim([0, len(row['pred psth']) / freq])
 
