@@ -11,7 +11,7 @@ from itertools import chain
 import os
 import pandas as pd
 import re
-from configparser import ConfigParser
+
 from IPython.display import display
 
 class parse:
@@ -115,6 +115,8 @@ class parse:
         print('hdf5 was written as '+filename_new+' at '+path_h5)
 
     def meta_data(ini):
+
+        from configparser import ConfigParser
 
         info = {}
 
