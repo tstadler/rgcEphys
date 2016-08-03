@@ -11,7 +11,6 @@ from itertools import chain
 import os
 import pandas as pd
 import re
-import tifffile as tf
 from configparser import ConfigParser
 from IPython.display import display
 
@@ -604,6 +603,7 @@ class stimuli:
         return (spiketimes_trial, spiketimes_normed, hist, hist_sorted, dsi, deg)
 
 class morph:
+    import tifffile as tf
 
     """
     contains functions for analysing the morphologies of cells filled and reconstructed offline
@@ -894,11 +894,7 @@ class plots:
         from matplotlib import ticker
         import matplotlib
 
-
-        my_cmap = plt.cm.get_cmap('coolwarm')
-        norm = matplotlib.colors.Normalize(min(kernel), max(kernel))
-        color_off = my_cmap(norm(min(kernel) + .02))
-        color_on = my_cmap(norm(max(kernel) - .02))
+        cur_pal = sns.color_palette()
 
         plt.rcParams.update(
             {'figure.figsize': (10, 8), 'figure.subplot.hspace': 0, 'figure.subplot.wspace': .2, 'axes.titlesize': 16,
@@ -929,9 +925,9 @@ class plots:
         deltat = 1000  # in ms
         t = np.linspace(100, -deltat, len(kernel))
         if np.sign(np.mean(kernel)) == -1:
-            plt.plot(t, kernel, color='b')
+            plt.plot(t, kernel, color=cur_pal[0])
         else:
-            plt.plot(t, kernel, color='r')
+            plt.plot(t, kernel, color=cur_pal[2])
 
         plt.locator_params(axis='y', nbins=4)
         ax = fig.gca()

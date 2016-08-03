@@ -110,18 +110,10 @@ class lnp_fit:
 
             return F_conv, sta_inst
 
-    def lnp(self,filename, ch_voltage, ch_trigger, rec_type, mseq, ll_fun, jac, w0, k, freq=5, fs=10000):
+    def lnp(self,s,y,ll,jac,w0, k_fold=10, sign=-1,eps=1,freq=5, fs=10000):
 
         """
-        Convolve the stimulus ensemble with the time kernel obtained from STA and fit the instantaneous RF of an LNP model with the given likelihood fun
 
-        :arg filename: str '/path/to/example.h5'
-        :arg ch_voltage: str 'name' of the recording channel containing a voltage signal recorded in gap-free mode
-        :arg ch_trigger: str 'name' of the recording channel containing a trigger signal recorded in gap-free mode
-        :arg rec_type: enum('intracell', 'extracell') patch mode
-        :arg mseq: str '/path/to/mseq'
-        :arg ll_fun function pointer to the negative log-likelihood function
-        :arg jac boolen indicating whether fun returns gradient as well, grad has dimension (n,1)
         :arg w0 array (n,1) initial rf guess
         :arg k scalar k-fold cross-validation performed on the data set
         :arg freq scalar stimulation frequency in Hz
@@ -129,54 +121,56 @@ class lnp_fit:
 
 
         """
-        (voltage_trace, rec_len, spiketimes) = RgcEphys.preproc.spike_detect(filename, rec_type, ch_voltage)
 
-        (trigger_trace, triggertimes) = RgcEphys.preproc.trigger_detect(filename, ch_trigger)
 
-        s_conv, sta_inst = self.stim_conv(filename, ch_trigger, ch_voltage, rec_type, mseq)
+        T = int(s.shape[1])
+        n = int(s.shape[0])
 
-        s = np.transpose(s_conv)  # make it a (n x T) array
-
-        spiketimes = spiketimes[spiketimes > triggertimes[0]]
-        spiketimes = spiketimes[spiketimes < triggertimes[len(triggertimes) - 1] + (fs / freq)]
-
-        # bin spiketimes as stimulus frames
-        T = s.shape[1]
-
-        y = np.histogram(spiketimes, bins=T,
-                         range=[triggertimes[0], triggertimes[len(triggertimes) - 1] + (fs / freq)])[0]
+        ## Cross-validate
+        kf = KFold(T, n_folds=k_fold, shuffle=False)
 
         LNP_dict = {}
         LNP_dict.clear()
-        LNP_dict['nLL train'] = []
-        LNP_dict['nLL test'] = []
+        LNP_dict['nll_train'] = []
+        LNP_dict['nll_test'] = []
         LNP_dict['w'] = []
-        LNP_dict['pred correct'] = []
-        LNP_dict['pearson r'] = []
-        LNP_dict['R2'] = []
-        LNP_dict['pred psth'] = []
-        LNP_dict['true psth'] = []
+        LNP_dict['pearson_r'] = []
+        LNP_dict['r'] = []
+        LNP_dict['y_test'] = []
+        idx_train = 0
 
-        kf = KFold(T, n_folds=k)
         for train, test in kf:
-            res = scoptimize.minimize(ll_fun, w0, args=(s[:, train], y[train]), jac=jac, method='TNC')
-            print(res.message, 'neg log-liklhd: ', res.fun)
 
-            LNP_dict['nLL train'].append(res.fun)
-            LNP_dict['nLL test'].append(ll_fun(res.x, s[:, test], y[test])[0])
-            LNP_dict['w'].append(res.x)
+            # print('Next train set: ', idx_train)
+            it = 0
 
-            y_test = np.zeros(len(test))
-            for t in range(len(test)):
-                r = np.exp(np.dot(res.x, s[:, test[t]]))
-                y_test[t] = np.random.poisson(lam=r)
+            res = scoptimize.minimize(ll, w0, args=(s[:, train], y[train],sign), jac=jac, method='BFGS')
+            w_opt = res.x
+            nll_train = res.fun
+            dnll = 1000
 
-            LNP_dict['pred correct'].append((sum(y_test == y[test]) / len(test)))
-            LNP_dict['pearson r'].append(scstats.pearsonr(y_test, y[test])[0])
-            LNP_dict['R2'].append(
-                1 - np.sum(np.square(y[test] - y_test)) / np.sum(np.square(y[test] - np.mean(y[test]))))
-            LNP_dict['pred psth'].append(y_test * freq)
-            LNP_dict['true psth'].append(y[test] * freq)
+            while dnll > eps:
+                # print('Optimize for w')
+                res = scoptimize.minimize(ll, w_opt, args=(s[:, train], y[train],sign), jac=True, method='BFGS')
+                w_opt = res.x
+                dnll = abs(nll_train - res.fun)
+                nll_train = res.fun
+                it += 1
+
+            LNP_dict['nll_train'].append(nll_train)
+            LNP_dict['nll_test'].append(ll(w_opt, s[:, test], y[test],sign)[0])
+            LNP_dict['w'].append(w_opt)
+
+            ## Predict spike rates
+
+            r = np.exp(np.dot(w_opt, s[:, test]))
+
+            LNP_dict['pearson_r'].append(np.corrcoef(r, y[test]))
+            LNP_dict['r'].append(r)
+            LNP_dict['y_test'].append(y[test])
+
+            idx_train += 1
+
         LNP_df = pd.DataFrame(LNP_dict)
 
         return LNP_df
