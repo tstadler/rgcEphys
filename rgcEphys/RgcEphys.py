@@ -603,7 +603,7 @@ class stimuli:
         return (spiketimes_trial, spiketimes_normed, hist, hist_sorted, dsi, deg)
 
 class morph:
-    import tifffile as tf
+
 
     """
     contains functions for analysing the morphologies of cells filled and reconstructed offline
@@ -677,6 +677,7 @@ class morph:
         return rf_center, rf_up, morph, morph_pad
 
     def import_stack(self, data_folder, exp_date, eye, cell_id, write_path):
+        import tifffile as tf
 
         # read from .tif
 
