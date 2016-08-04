@@ -11,7 +11,7 @@ from itertools import chain
 import os
 import pandas as pd
 import re
-
+import scipy
 from IPython.display import display
 
 class parse:
